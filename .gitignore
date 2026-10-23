@@ -1,0 +1,6 @@
+﻿target/
+*.class
+*.pgv
+*.tmp
+.idea/
+.vscode/
