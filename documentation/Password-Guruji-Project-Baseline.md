@@ -313,3 +313,13 @@ Technical guidance and product details were reviewed on 23 October 2026. Standar
 ---
 
 **Baseline status:** Ready for review and scope decisions. This document does not authorize or begin implementation.
+
+## Implementation decisions update — 23 October 2026
+
+The user approved moving from baseline review into the initial offline desktop implementation.
+
+- The local evaluation keeps the master-password minimum at six characters for ease of testing. Raise it to 15 characters after local testing is complete; the six-character setting is temporary and is not for public release.
+- Google Authenticator verification for unlocking Password Guruji is deferred to a later implementation stage. Storing and generating TOTP codes for the user's other accounts is a separate local-vault feature.
+- The current Java build targets Java 17. Supported operating systems and distribution format remain open decisions.
+- A bundled EFF long word list is used for passphrase generation and is attributed in documentation/THIRD-PARTY-NOTICES.md.
+- Implementation completion and compilation do not establish security certification. App workflows still require user-led local testing, and release readiness still requires the reviews described in this baseline.
