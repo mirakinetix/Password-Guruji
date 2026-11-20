@@ -806,13 +806,13 @@ public final class PasswordGurujiApp {
         JPanel footer = new JPanel(new FlowLayout(FlowLayout.CENTER, 9, 6));
         footer.setBackground(PANEL);
         footer.setBorder(BorderFactory.createMatteBorder(1, 0, 0, 0, BORDER));
-        footer.add(label("MIRAKINETIX", 10, ACCENT, Font.BOLD));
+        footer.add(externalLinkButton("MIRAKINETIX", "https://mirakinetix.com/"));
         JLabel separator = label("·", 12, MUTED, Font.PLAIN);
         footer.add(separator);
-        footer.add(externalLinkButton("LinkedIn", "https://www.linkedin.com/in/devdutt-parab"));
+        footer.add(externalLinkButton("LinkedIn", "https://www.linkedin.com/in/devdutt-parab/"));
         JLabel linkSeparator = label("·", 12, MUTED, Font.PLAIN);
         footer.add(linkSeparator);
-        footer.add(externalLinkButton("dparab.me", "https://dparab.me"));
+        footer.add(externalLinkButton("dev dparab.me", "https://dparab.me/"));
         return footer;
     }
     private JButton externalLinkButton(String text, String address) {
