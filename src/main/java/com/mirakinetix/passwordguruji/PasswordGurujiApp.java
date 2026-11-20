@@ -37,7 +37,7 @@ public final class PasswordGurujiApp {
     private final JComboBox<String> folderFilter = new JComboBox<>();
     private final JComboBox<String> sortFilter = new JComboBox<>(new String[]{"Name A–Z", "Recently updated", "Oldest updated"});
     private final JLabel listSummary = new JLabel("0 records");
-    private final Preferences preferences = Preferences.userNodeForPackage(PasswordGurujiApp.class);
+    private final Preferences preferences;
     private VaultStore store = new VaultStore(VaultStore.defaultPath());
     private final List<VaultEntry> entries = new ArrayList<>();
     private char[] masterPassword;
@@ -50,9 +50,17 @@ public final class PasswordGurujiApp {
     private int clipboardClearSeconds;
     private JPanel unlockPage;
 
-    public static void main(String[] args) { SwingUtilities.invokeLater(() -> new PasswordGurujiApp().launch()); }
+    public static void main(String[] args) { SwingUtilities.invokeLater(() -> new PasswordGurujiApp(args).launch()); }
 
-    private PasswordGurujiApp() {
+    private PasswordGurujiApp(String[] args) {
+        boolean sample = args.length == 2 && args[0].equals("--sample-vault");
+        preferences = sample ? Preferences.userNodeForPackage(PasswordGurujiApp.class).node("sample")
+                : Preferences.userNodeForPackage(PasswordGurujiApp.class);
+        if (sample) {
+            store = new VaultStore(Path.of(args[1]));
+            preferences.putInt("lockAfterMinutes", 1);
+            preferences.putInt("clipboardClearSeconds", 15);
+        }
         lockAfterMinutes = preferences.getInt("lockAfterMinutes", 5);
         clipboardClearSeconds = Math.max(5, Math.min(120, preferences.getInt("clipboardClearSeconds", 30)));
         idleTimer = new javax.swing.Timer(1000, e -> {

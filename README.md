@@ -21,6 +21,7 @@ This build does not provide cloud sync, live breach monitoring, account recovery
 
 ## Documentation
 
+- [Sample vault and password](documentation/SAMPLE-VAULT.md)
 - [User Manual](documentation/USER-MANUAL.md)
 - [Installation Guide](documentation/INSTALLATION-GUIDE.md)
 - [Manual Test Guide](documentation/MANUAL-TEST-GUIDE.md)

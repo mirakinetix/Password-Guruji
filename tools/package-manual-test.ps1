@@ -68,6 +68,7 @@ $docs = @(
     'documentation\USER-MANUAL.md',
     'documentation\INSTALLATION-GUIDE.md',
     'documentation\MANUAL-TEST-GUIDE.md',
+    'documentation\SAMPLE-VAULT.md',
     'documentation\THIRD-PARTY-NOTICES.md'
 )
 foreach ($relativePath in $docs) {
@@ -77,6 +78,17 @@ foreach ($relativePath in $docs) {
     }
     Copy-Item -LiteralPath $sourcePath -Destination $releaseDir
 }
+
+$sampleTools = Join-Path $targetDir "sample-tools-$BuildId"
+New-Item -ItemType Directory -Path $sampleTools | Out-Null
+$javacPath = Join-Path (Split-Path $java.Source -Parent) 'javac.exe'
+& $javacPath '--release' '17' '-encoding' 'UTF-8' '-cp' $jarPath '-d' $sampleTools (Join-Path $repoRoot 'tools\CreateSampleVault.java')
+if ($LASTEXITCODE -ne 0) { throw 'Sample vault tool compilation failed.' }
+$samplePath = Join-Path $releaseDir 'Sample\sample-vault.pgv'
+& $java.Source '-cp' "$sampleTools;$jarPath" 'com.mirakinetix.passwordguruji.CreateSampleVault' $samplePath
+if ($LASTEXITCODE -ne 0) { throw 'Sample vault generation or verification failed.' }
+$sampleLauncher = '@echo off' + [Environment]::NewLine + 'start "" "%~dp0Password Guruji\Password Guruji.exe" --sample-vault "%~dp0Sample\sample-vault.pgv"' + [Environment]::NewLine
+[System.IO.File]::WriteAllText((Join-Path $releaseDir 'Start Sample Vault.cmd'), $sampleLauncher, [System.Text.Encoding]::ASCII)
 
 $startText = @'
 Password Guruji 0.1.0 - Manual Testing Build
@@ -90,6 +102,8 @@ identity/payment data, recovery codes, or live authenticator secrets.
 2. Read INSTALLATION-GUIDE.md and MANUAL-TEST-GUIDE.md.
 3. Open Password Guruji\Password Guruji.exe to launch the app.
 4. Read USER-MANUAL.md for feature instructions.
+5. For fictional examples, open Start Sample Vault.cmd. Master password: 123456.
+   Read SAMPLE-VAULT.md for sample records, settings, and reset instructions.
 
 The app works offline. Footer links open a browser only when clicked.
 This is an unsigned manual-testing build, not a production-certified release.
