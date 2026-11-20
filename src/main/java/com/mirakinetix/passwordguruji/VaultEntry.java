@@ -63,8 +63,8 @@ final class VaultEntry {
     VaultEntry revised(String title, String username, String password, String url, String notes, String category,
                        String nextFolder, boolean nextFavorite, List<String> nextTags, Map<String, String> nextFields) {
         List<Revision> nextHistory = new ArrayList<>(history);
-        if (!password.isEmpty() || !notes.isEmpty() || !username.isEmpty() || !customFields.isEmpty()) {
-            nextHistory.add(new Revision(username, password, url, notes, customFields, updatedAt));
+        if (!this.password.isEmpty() || !this.notes.isEmpty() || !this.username.isEmpty() || !this.customFields.isEmpty()) {
+            nextHistory.add(new Revision(this.username, this.password, this.url, this.notes, this.customFields, updatedAt));
             while (nextHistory.size() > 10) nextHistory.remove(0);
         }
         return new VaultEntry(id, title, username, password, url, notes, category, nextFolder,
