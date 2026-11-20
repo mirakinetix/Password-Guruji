@@ -1,5 +1,7 @@
 # Password Guruji
 
+![Password Guruji — Your Guide to Stronger Passwords](documentation/brand-assets/password-guruji/Password-Guruji_logo_banner.png)
+
 Password Guruji is an offline-first Java desktop password manager and encrypted personal vault from Mirakinetix.
 
 > **Current status: manual-testing build.** Use synthetic data only. This project has not received an independent security audit and is not a production-certified password manager.

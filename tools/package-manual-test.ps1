@@ -40,7 +40,7 @@ if (-not (Test-Path -LiteralPath $jarPath)) {
 New-Item -ItemType Directory -Path $inputDir | Out-Null
 Copy-Item -LiteralPath $jarPath -Destination $inputDir
 
-$iconPath = Join-Path $repoRoot 'documentation\brand-assets\mirakinetix-app-icon.ico'
+$iconPath = Join-Path $repoRoot 'documentation\brand-assets\password-guruji\password-guruji.ico'
 $jpackageArgs = @(
     '--type', 'app-image',
     '--name', 'Password Guruji',

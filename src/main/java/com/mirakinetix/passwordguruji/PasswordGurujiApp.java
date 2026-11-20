@@ -74,8 +74,12 @@ public final class PasswordGurujiApp {
 
     private void launch() {
         try { UIManager.setLookAndFeel(UIManager.getCrossPlatformLookAndFeelClassName()); } catch (Exception ignored) {}
-        java.net.URL appIcon = PasswordGurujiApp.class.getResource("/com/mirakinetix/passwordguruji/brand/mirakinetix-app-icon.png");
-        if (appIcon != null) frame.setIconImage(Toolkit.getDefaultToolkit().getImage(appIcon));
+        List<Image> appIcons = new ArrayList<>();
+        for (int size : new int[]{16,24,32,48,64,128,256}) {
+            java.net.URL icon = PasswordGurujiApp.class.getResource("/com/mirakinetix/passwordguruji/brand/password-guruji-icon-" + size + ".png");
+            if (icon != null) appIcons.add(new ImageIcon(icon).getImage());
+        }
+        frame.setIconImages(appIcons);
         frame.setDefaultCloseOperation(WindowConstants.DO_NOTHING_ON_CLOSE);
         frame.setMinimumSize(new Dimension(980, 650)); frame.setSize(1220, 800); frame.setLocationRelativeTo(null);
         frame.addWindowListener(new WindowAdapter() {
@@ -101,7 +105,7 @@ public final class PasswordGurujiApp {
         JPanel card = new JPanel(); card.setBackground(PANEL); card.setBorder(new EmptyBorder(30, 36, 28, 36));
         card.setLayout(new BoxLayout(card, BoxLayout.Y_AXIS));
         card.add(leftAligned(label("MIRAKINETIX", 12, ACCENT, Font.BOLD)));
-        card.add(Box.createVerticalStrut(9)); card.add(leftAligned(label("Password Guruji", 29, TEXT, Font.BOLD)));
+        card.add(Box.createVerticalStrut(9)); card.add(leftAligned(productHeading(29)));
         card.add(Box.createVerticalStrut(6)); card.add(leftAligned(label("Your private vault stays on this device.", 14, MUTED, Font.PLAIN)));
         vaultPathText = new JTextArea("Offline by design · No account · No network connection\nVault file:\n" + store.path());
         JTextArea intro = vaultPathText;
@@ -180,7 +184,7 @@ public final class PasswordGurujiApp {
         header.setBorder(new EmptyBorder(16, 20, 12, 20));
         JPanel brand = new JPanel(); brand.setOpaque(false); brand.setLayout(new BoxLayout(brand, BoxLayout.Y_AXIS));
         brand.add(label("MIRAKINETIX", 10, ACCENT, Font.BOLD)); brand.add(Box.createVerticalStrut(3));
-        brand.add(label("Password Guruji", 22, TEXT, Font.BOLD));
+        brand.add(productHeading(22));
         header.add(brand, BorderLayout.WEST);
         JPanel actions = new JPanel(new FlowLayout(FlowLayout.RIGHT, 7, 0)); actions.setOpaque(false);
         JButton generator = subtleButton("Generate"), health = subtleButton("Health");
@@ -843,6 +847,14 @@ public final class PasswordGurujiApp {
     private JLabel label(String text,int size,Color color,int style){
         JLabel value=new JLabel(text);value.setFont(new Font(Font.SANS_SERIF,style,size));value.setForeground(color);return value;
     }
+    private JLabel productHeading(int fontSize) {
+        JLabel heading = label("Password Guruji", fontSize, TEXT, Font.BOLD);
+        java.net.URL icon = PasswordGurujiApp.class.getResource("/com/mirakinetix/passwordguruji/brand/password-guruji-icon-48.png");
+        if (icon != null) heading.setIcon(new ImageIcon(icon));
+        heading.setIconTextGap(12);
+        return heading;
+    }
+
     private JButton primaryButton(String text){JButton b=new JButton(text);styleButton(b,true);return b;}
     private JButton subtleButton(String text){JButton b=new JButton(text);styleButton(b,false);return b;}
     private JToggleButton subtleToggle(String text){JToggleButton b=new JToggleButton(text);styleButton(b,false);return b;}
