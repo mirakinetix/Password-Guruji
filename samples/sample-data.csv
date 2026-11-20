@@ -1,0 +1,25 @@
+"Name","Type","Username","Password","Website","Notes","Folder","Favourite","Tags","CustomFields"
+"SAMPLE - Login","Login","demo@example.invalid","123456","https://example.invalid","Fictional demonstration only. Never use these credentials.
+Second sample note line.","Personal","true","sample|fictional","base64-v1:UmVmZXJlbmNl:REVNTy0wMDE
+U2FtcGxlIGZpZWxk:RXhhbXBsZSB2YWx1ZQ"
+"SAMPLE - Secure note","Secure note","demo@example.invalid","123456","https://example.invalid","Fictional demonstration only. Never use these credentials.
+Second sample note line.","Examples","false","sample|fictional","base64-v1:UmVmZXJlbmNl:REVNTy0wMDE
+U2FtcGxlIGZpZWxk:RXhhbXBsZSB2YWx1ZQ"
+"SAMPLE - Identity","Identity","demo@example.invalid","123456","https://example.invalid","Fictional demonstration only. Never use these credentials.
+Second sample note line.","Examples","false","sample|fictional","base64-v1:UmVmZXJlbmNl:REVNTy0wMDE
+U2FtcGxlIGZpZWxk:RXhhbXBsZSB2YWx1ZQ"
+"SAMPLE - Payment","Payment","demo@example.invalid","123456","https://example.invalid","Fictional demonstration only. Never use these credentials.
+Second sample note line.","Examples","false","sample|fictional","base64-v1:UmVmZXJlbmNl:REVNTy0wMDE
+U2FtcGxlIGZpZWxk:RXhhbXBsZSB2YWx1ZQ"
+"SAMPLE - Recovery code","Recovery code","demo@example.invalid","123456","https://example.invalid","Fictional demonstration only. Never use these credentials.
+Second sample note line.","Examples","false","sample|fictional","base64-v1:UmVmZXJlbmNl:REVNTy0wMDE
+U2FtcGxlIGZpZWxk:RXhhbXBsZSB2YWx1ZQ"
+"SAMPLE - License","License","demo@example.invalid","123456","https://example.invalid","Fictional demonstration only. Never use these credentials.
+Second sample note line.","Examples","false","sample|fictional","base64-v1:UmVmZXJlbmNl:REVNTy0wMDE
+U2FtcGxlIGZpZWxk:RXhhbXBsZSB2YWx1ZQ"
+"SAMPLE - Other","Other","demo@example.invalid","123456","https://example.invalid","Fictional demonstration only. Never use these credentials.
+Second sample note line.","Examples","false","sample|fictional","base64-v1:UmVmZXJlbmNl:REVNTy0wMDE
+U2FtcGxlIGZpZWxk:RXhhbXBsZSB2YWx1ZQ"
+"SAMPLE - Authenticator","Login","demo@example.invalid","123456","","Public test seed, never use for a real account.","Work","true","sample|totp","base64-v1:VE9UUCBzZWNyZXQ:R0VaREdOQlZHWTNUUU9KUUdFWkRHTkJWR1kzVFFPSlE"
+"SAMPLE - History","Login","demo@example.invalid","123456","","Updated notes: restore the earlier snapshot to compare.","Work","false","sample|history","base64-v1:UmV2aXNpb24gZXhhbXBsZQ:VXBkYXRlZA"
+"SAMPLE - Deleted record","Login","demo@example.invalid","123456","","Restore this disposable record from Recycle bin.","","false","","base64-v1:"

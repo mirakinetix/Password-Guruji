@@ -4,6 +4,23 @@ Password Guruji is an offline-first Java desktop password manager and encrypted 
 
 > **Current status: manual-testing build.** Use synthetic data only. This project has not received an independent security audit and is not a production-certified password manager.
 
+## Try the included sample
+
+**Sample master password: `123456`**
+
+**Every sample record password: `123456`**
+
+Ready-made fictional data is in [samples](samples/README.md): [sample vault](samples/sample-vault.pgv), [encrypted backup](samples/sample-backup.pgv), and [plaintext CSV](samples/sample-data.csv).
+
+With Java 17+ and Maven installed, run these commands from the repository folder:
+
+```powershell
+mvn package
+.\samples\Start-Sample.ps1
+```
+
+The launcher creates a working copy and opens it with separate sample settings. It preserves the supplied original vault. For the portable Windows ZIP, use **Start Sample Vault.cmd** instead. These public credentials are for fictional demonstrations only.
+
 ## Features in this build
 
 - Create, unlock, and manually lock an encrypted local vault.

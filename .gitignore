@@ -1,6 +1,9 @@
 ﻿target/
 *.class
 *.pgv
+!samples/sample-vault.pgv
+!samples/sample-backup.pgv
+samples/working/
 *.tmp
 .idea/
 .vscode/

@@ -1,5 +1,7 @@
 # Sample vault
 
+For a source checkout, ready-made files and launch instructions are in [samples](../samples/README.md). The sample master password and every record password are **123456**.
+
 After extracting the Windows package, open **Start Sample Vault.cmd**.
 
 **Sample master password: 123456**
