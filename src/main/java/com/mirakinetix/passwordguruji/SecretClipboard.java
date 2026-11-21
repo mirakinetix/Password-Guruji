@@ -12,9 +12,10 @@ final class SecretClipboard implements ClipboardOwner {
     SecretClipboard(Clipboard clipboard) { this.clipboard = clipboard; }
 
     void copy(String value, int delayMillis) {
-        clear();
-        owned = new StringSelection(value);
-        clipboard.setContents(owned, this);
+        Transferable next = new StringSelection(value);
+        clipboard.setContents(next, this);
+        if (timer != null) timer.stop();
+        owned = next;
         timer = new Timer(delayMillis, event -> clear());
         timer.setRepeats(false);
         timer.start();

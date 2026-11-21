@@ -45,14 +45,25 @@ class DesktopTest {
                 descendants(unlock).stream().filter(c -> c instanceof JPasswordField).forEach(c -> ((JPasswordField)c).setText("dummy-test-123456"));
                 click(unlock, "Create my vault"); assertEquals(false, field(app,"locked"));
                 char[] held = (char[])field(app, "masterPassword");
+                ((SecretClipboard)field(app,"secretClipboard")).copy("dummy-lock-secret",30000);
                 invoke(app,"lockVault"); assertEquals(true,field(app,"locked")); assertNull(field(app,"masterPassword"));
+                assertEquals("",Toolkit.getDefaultToolkit().getSystemClipboard().getData(DataFlavor.stringFlavor));
                 assertArrayEquals(new char[held.length],held);
                 unlock = (Container)field(app,"unlockPage");
                 JPasswordField input = (JPasswordField)descendants(unlock).stream().filter(c -> c instanceof JPasswordField).findFirst().orElseThrow();
                 input.setText("incorrect"); click(unlock,"Unlock vault"); assertEquals(true,field(app,"locked"));
                 input.setText("dummy-test-123456"); click(unlock,"Unlock vault"); assertEquals(false,field(app,"locked"));
+                Field activity=app.getClass().getDeclaredField("lastActivity"); activity.setAccessible(true); activity.setLong(app,0L);
+                javax.swing.Timer idle=(javax.swing.Timer)field(app,"idleTimer");
+                for(var listener:idle.getActionListeners()) listener.actionPerformed(new java.awt.event.ActionEvent(idle,0,"idle"));
+                assertEquals(true,field(app,"locked"));
+                unlock=(Container)field(app,"unlockPage");
+                input=(JPasswordField)descendants(unlock).stream().filter(c -> c instanceof JPasswordField).findFirst().orElseThrow();
+                input.setText("dummy-test-123456"); click(unlock,"Unlock vault");
+                ((SecretClipboard)field(app,"secretClipboard")).copy("dummy-close-secret",30000);
                 frame.dispatchEvent(new WindowEvent(frame,WindowEvent.WINDOW_CLOSING));
                 assertFalse(frame.isDisplayable()); assertNull(field(app,"masterPassword"));
+                assertEquals("",Toolkit.getDefaultToolkit().getSystemClipboard().getData(DataFlavor.stringFlavor));
                 assertFalse(((javax.swing.Timer)field(app,"idleTimer")).isRunning());
             } catch(Throwable error) { failure[0]=error; }
             finally { if(app!=null) try { ((javax.swing.Timer)field(app,"idleTimer")).stop(); ((JFrame)field(app,"frame")).dispose(); } catch(Exception ignored) {} }
@@ -72,5 +83,13 @@ class DesktopTest {
         Clipboard clipboard=new Clipboard("isolated-test"); SecretClipboard owner=new SecretClipboard(clipboard);
         SwingUtilities.invokeAndWait(() -> { owner.copy("synthetic",1000); clipboard.setContents(new StringSelection("new unrelated text"),null); owner.clear(); });
         assertEquals("new unrelated text",clipboard.getData(DataFlavor.stringFlavor));
+    }
+    @Test void replacingOwnedClipboardTextCancelsPreviousTimer() throws Exception {
+        Clipboard clipboard=new Clipboard("replacement-test"); SecretClipboard owner=new SecretClipboard(clipboard);
+        SwingUtilities.invokeAndWait(() -> { owner.copy("old dummy",50); owner.copy("new dummy",2000); });
+        Thread.sleep(150);
+        assertEquals("new dummy",clipboard.getData(DataFlavor.stringFlavor));
+        SwingUtilities.invokeAndWait(owner::clear);
+        assertEquals("",clipboard.getData(DataFlavor.stringFlavor));
     }
 }

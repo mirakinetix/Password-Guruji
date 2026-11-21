@@ -128,4 +128,12 @@ class CoreTest {
         Files.createDirectories(legacy.getParent()); Files.write(legacy,new byte[]{1});
         assertEquals(legacy,VaultStore.defaultPath("Mac OS X",dir,Map.of()));
     }
+    @Test void committedFictionalSampleRemainsReadable() throws Exception {
+        Path working=dir.resolve("sample-copy.pgv");
+        Files.copy(Path.of("samples/sample-vault.pgv"),working);
+        List<VaultEntry> entries=new VaultStore(working).load("123456".toCharArray());
+        assertEquals(10,entries.size());
+        assertEquals(7,entries.stream().map(VaultEntry::category).distinct().count());
+        assertTrue(entries.stream().anyMatch(VaultEntry::archived));
+    }
 }
