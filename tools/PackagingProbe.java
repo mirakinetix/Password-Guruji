@@ -6,6 +6,23 @@ import java.util.*;
 /** Runs against the installed JAR and its bundled runtime with temporary synthetic data only. */
 public final class PackagingProbe {
     public static void main(String[] args) throws Exception {
+        if (args.length == 2 && (args[0].equals("seed") || args[0].equals("verify"))) {
+            Path file = Path.of(args[1]);
+            char[] password = "synthetic-package-probe-123".toCharArray();
+            try {
+                VaultStore vault = new VaultStore(file);
+                if (args[0].equals("seed")) {
+                    require(!Files.exists(file), "refuse to replace existing vault");
+                    Files.createDirectories(file.toAbsolutePath().getParent());
+                    vault.create(password);
+                    vault.save(password, List.of(VaultEntry.create("upgrade-sentinel", "test@example.invalid", "dummy-password", "", "", "Login")));
+                }
+                var entries = vault.load(password);
+                require(entries.size() == 1 && entries.getFirst().password().equals("dummy-password"), "upgrade vault preservation");
+                System.out.println("Synthetic upgrade vault verified.");
+            } finally { Arrays.fill(password, '\0'); }
+            return;
+        }
         Path directory = Files.createTempDirectory("password-guruji-package-probe-");
         Path file = directory.resolve("dummy.pgv");
         char[] password = "synthetic-package-probe-123".toCharArray();
@@ -28,7 +45,9 @@ public final class PackagingProbe {
             System.out.println("Installed runtime and installed JAR: 7 functional checks passed.");
         } finally {
             Arrays.fill(password,'\0');
-            Files.deleteIfExists(file); Files.deleteIfExists(directory);
+            Files.deleteIfExists(file);
+            Files.deleteIfExists(file.resolveSibling(file.getFileName() + ".lock"));
+            Files.deleteIfExists(directory);
         }
     }
     private static void require(boolean condition,String label) {

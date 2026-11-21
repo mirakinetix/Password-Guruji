@@ -12,6 +12,8 @@ jobs:
     timeout-minutes: 10
     steps:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
       - uses: actions/setup-java@cf277c60eb25467037889841efdb72551f06f6c3
         with:
           distribution: temurin
@@ -19,6 +21,8 @@ jobs:
           cache: maven
       - run: mvn -U -B dependency:list -DoutputFile=target/dependencies.txt
       - run: mvn -U -B dependency:resolve-plugins -DincludeArtifactIds=maven-resources-plugin,maven-compiler-plugin,maven-surefire-plugin,maven-jar-plugin,maven-dependency-plugin -DoutputFile=target/plugin-dependencies.txt
+      - run: python tools/check-dependencies.py --prepare-provider
+      - run: mvn -U -B -f target/security-provider-pom.xml dependency:list -DoutputFile=provider-dependencies.txt
       - run: python tools/check-dependencies.py
       - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
         if: always()
@@ -28,5 +32,7 @@ jobs:
             target/dependency-security.json
             target/dependencies.txt
             target/plugin-dependencies.txt
+            target/provider-dependencies.txt
+            target/source-security.json
           retention-days: 7
           if-no-files-found: error
