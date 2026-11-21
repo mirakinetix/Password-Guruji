@@ -10,7 +10,9 @@ shutil.copy2(ROOT / 'target/password-guruji-0.1.0.jar', INPUT)
 java_home = pathlib.Path(os.environ['JAVA_HOME'])
 jpackage = java_home / 'bin' / ('jpackage.exe' if os.name == 'nt' else 'jpackage')
 system = platform.system()
-common = [str(jpackage), '--name', 'Password Guruji', '--app-version', '0.1.0', '--vendor', 'Mirakinetix',
+# Apple's CFBundleVersion requires a positive first component. This is a package
+# build number, not a declaration that the application has reached a stable release.
+common = [str(jpackage), '--name', 'Password Guruji', '--app-version', '1.0.0', '--vendor', 'Mirakinetix',
           '--description', 'Unsigned beta candidate - synthetic credentials only']
 image_args = common + ['--type', 'app-image', '--input', str(INPUT), '--main-jar', 'password-guruji-0.1.0.jar',
     '--main-class', 'com.mirakinetix.passwordguruji.PasswordGurujiApp', '--dest', str(OUT / 'image')]
@@ -28,6 +30,7 @@ for fmt in formats:
     if system == 'Darwin': args += ['--mac-package-identifier', 'com.mirakinetix.passwordguruji']
     subprocess.run(args, check=True)
 metadata = {'os': system, 'architecture': platform.machine(), 'java_home': str(java_home), 'formats': formats,
+            'application_version': '0.1.0', 'native_package_version': '1.0.0',
             'signed': False, 'notarized': False, 'commit': subprocess.check_output(['git','rev-parse','HEAD'],text=True).strip()}
 (OUT / 'build-metadata.json').write_text(json.dumps(metadata, indent=2), encoding='utf-8')
 for package in sorted(OUT.iterdir()):

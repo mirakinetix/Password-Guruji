@@ -27,7 +27,7 @@ if (-not (Test-Path -LiteralPath $jpackagePath)) {
 }
 
 $pomPath = Join-Path $repoRoot 'pom.xml'
-& $maven.Source '-f' $pomPath '-DskipTests' 'package'
+& $maven.Source '-f' $pomPath 'verify'
 if ($LASTEXITCODE -ne 0) {
     throw "Maven packaging failed with exit code $LASTEXITCODE."
 }
@@ -82,7 +82,7 @@ foreach ($relativePath in $docs) {
 $sampleTools = Join-Path $targetDir "sample-tools-$BuildId"
 New-Item -ItemType Directory -Path $sampleTools | Out-Null
 $javacPath = Join-Path (Split-Path $java.Source -Parent) 'javac.exe'
-& $javacPath '--release' '17' '-encoding' 'UTF-8' '-cp' $jarPath '-d' $sampleTools (Join-Path $repoRoot 'tools\CreateSampleVault.java')
+& $javacPath '--release' '25' '-encoding' 'UTF-8' '-cp' $jarPath '-d' $sampleTools (Join-Path $repoRoot 'tools\CreateSampleVault.java')
 if ($LASTEXITCODE -ne 0) { throw 'Sample vault tool compilation failed.' }
 $samplePath = Join-Path $releaseDir 'Sample\sample-vault.pgv'
 & $java.Source '-cp' "$sampleTools;$jarPath" 'com.mirakinetix.passwordguruji.CreateSampleVault' $samplePath

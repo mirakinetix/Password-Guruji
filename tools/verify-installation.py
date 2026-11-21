@@ -16,7 +16,6 @@ if system == 'Linux':
     installed = 'DEB installed; RPM metadata inspected (RPM install requires an RPM-based OS)'
 elif system == 'Darwin':
     pkg = next(out.glob('*.pkg')); dmg = next(out.glob('*.dmg'))
-    run('pkgutil','--check-signature',pkg) if False else None  # unsigned by design
     run('pkgutil','--payload-files',pkg)
     run('hdiutil','verify',dmg)
     run('sudo','installer','-pkg',pkg,'-target','/')

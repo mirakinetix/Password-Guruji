@@ -1,7 +1,5 @@
 name: Cross-platform beta candidate
 on:
-  push:
-    branches: [feature/cross-platform-beta-readiness]
   pull_request:
     branches: [main]
   workflow_dispatch:
