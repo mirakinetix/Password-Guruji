@@ -23,9 +23,9 @@ Record the final reviewed commit and matching workflow IDs before handing instal
 
 ## Current local evidence
 
-The recorded local `mvn -B -Pdesktop verify` run passed **75 tests: 74 passed, zero failures/errors, one skipped (Windows symbolic-link creation privilege unavailable)**: CoreTest 27, CompatibilityTest 21, DesktopTest 4, StorageHardeningTest 12, UiHardeningTest 5. These reports include real Swing and Windows system clipboard interaction. Later destination-protection/lock refinements need the final rerun before this count describes the completed candidate.
+The recorded local `mvn -B -Pdesktop verify` run passed **75 tests: 74 passed, zero failures/errors, one skipped (Windows symbolic-link creation privilege unavailable)**: CoreTest 27, CompatibilityTest 21, DesktopTest 4, FinalSafetyTest 6, StorageHardeningTest 12, UiHardeningTest 5. These reports include real Swing and Windows system clipboard interaction. This run includes destination-protection and disk-independent lock regressions.
 
-The expanded local OSV scan passed: **96 resolved package versions, zero advisory matches**. The limited credential scan checked **40 tracked text files, zero matches**. Python compilation and scanner whitespace checks passed. These are local results, not hosted CI results.
+The expanded local OSV scan passed: **96 resolved package versions, zero advisory matches**. The limited credential scan checked **52 tracked text files, zero matches**. Python compilation and scanner whitespace checks passed. These are local results, not hosted CI results.
 
 Failure tests cover injected write/replace failure, unsupported atomic moves, read-only destination, a stale writer, removed vault, subprocess lock release and crash before commit. They do not prove every power-loss or filesystem behavior. Permission assertions apply to the current platform; the revised code needs Linux/macOS CI validation.
 
@@ -48,7 +48,7 @@ Hosted Windows Server is not consumer Windows 11. Hosted Mac installation is not
 
 ## Artifact handoff
 
-Use only installers, hashes, metadata, test reports and installation-verification JSON from the same successful candidate run. Actions artifacts expire after seven days. Native package version 1.0.0 is an Apple-compatible packaging build number; application version 0.1.0 remains a beta candidate, not a stable release claim. Each build records its source commit and architecture.
+Use only installers, hashes, metadata, test reports and installation-verification JSON from the same successful candidate run. Actions artifacts expire after seven days. Native package version 1.0.1 is an Apple-compatible packaging build number; application version 0.1.0 remains a beta candidate, not a stable release claim. Each build records its source commit and architecture.
 
 No installer should be handed off until all required candidate checks pass. The tester then follows [CROSS-PLATFORM-BETA.md](CROSS-PLATFORM-BETA.md), the installation guide and manual/user guides with disposable fictional data only.
 

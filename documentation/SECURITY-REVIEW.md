@@ -40,6 +40,6 @@ The scanner sends public Maven coordinates/versions to OSV. It covers resolved a
 
 Missing inventories, incomplete plugin/provider resolution, advisory matches and request failures fail the scan. An incomplete report is written before scanning, so it cannot be mistaken for a stale clean report. The workflow retains inventories and timestamped results. The local expanded scan returned zero advisory matches for 96 versions.
 
-Tracked text files also receive high-confidence private-key/GitHub-token/AWS-access-key pattern checks. The local run checked 40 files with no matches. Results identify file/line/rule without revealing matched values. This is a limited detector, not exhaustive credential discovery; encrypted/binary files and repository history are not scanned.
+Tracked text files also receive high-confidence private-key/GitHub-token/AWS-access-key pattern checks. The local run checked 52 files with no matches. Results identify file/line/rule without revealing matched values. This is a limited detector, not exhaustive credential discovery; encrypted/binary files and repository history are not scanned.
 
 Actions are commit-pinned, tokens read-only, and signing secrets absent. No paid runners, signing account, certificate or membership were configured. [Signing prerequisites](SIGNING-REQUIREMENTS.md) and [release gates](RELEASE-READINESS.md) remain authoritative for distribution.

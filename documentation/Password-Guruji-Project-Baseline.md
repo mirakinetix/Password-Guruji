@@ -318,7 +318,7 @@ Technical guidance and product details were reviewed on 23 October 2026. Standar
 
 The user approved moving from baseline review into the initial offline desktop implementation.
 
-- The local evaluation keeps the master-password minimum at six characters for ease of testing. Raise it to 15 characters after local testing is complete; the six-character setting is temporary and is not for public release.
+- The hardened beta requires 15 Unicode characters for new normal vaults and password changes. Existing legacy passwords still unlock; explicit fictional sample mode alone permits six characters. Production use remains gated by the release-readiness review.
 - Google Authenticator verification for unlocking Password Guruji is deferred to a later implementation stage. Storing and generating TOTP codes for the user's other accounts is a separate local-vault feature.
 - The current Java build targets Java 17. Supported operating systems and distribution format remain open decisions.
 - A bundled EFF long word list is used for passphrase generation and is attributed in documentation/THIRD-PARTY-NOTICES.md.

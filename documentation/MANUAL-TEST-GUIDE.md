@@ -90,7 +90,7 @@ Vault-unlock Google Authenticator/MFA is **not part of this build**. Per-record 
 - Do not expect vault-unlock MFA, cloud sync, account sign-in, sharing, browser autofill, breach monitoring, online password checks, or automatic website connections.
 - Do not assess this build as security-audited, production-certified, or ready for general release. A functional test is not a security audit.
 - Do not permanently delete anything except a disposable test record. Do not remove test vaults or backups until the owner confirms.
-- Do not treat the temporary six-character test minimum as the final password policy.
+- Do not treat the six-character fictional sample password as a valid normal-vault creation policy.
 
 ## Report a result
 

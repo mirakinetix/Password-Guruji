@@ -9,7 +9,9 @@ IMAGES = {
 }
 if os.environ.get('GITHUB_ACTIONS') != 'true': raise SystemExit('Disposable GitHub Actions runners only.')
 
-def run(*args): subprocess.run([str(a) for a in args],check=True)
+def run(*args):
+    print('Running:', *args, flush=True)
+    subprocess.run([str(a) for a in args], check=True, timeout=180)
 
 def inside(family):
     root=pathlib.Path('/workspace'); out=root/'target/native'; evidence=pathlib.Path('/evidence')
@@ -17,7 +19,7 @@ def inside(family):
     fixture=next((out/'upgrade-fixture').glob('*.'+fmt)); candidate=next(out.glob('*.'+fmt))
     def install(package):
         if family=='fedora': run('dnf','install','-y',package)
-        else: run('apt-get','install','-y',package)
+        else: run('apt-get','install','-y','--no-install-recommends',package)
     def executable():
         return next(p for p in (pathlib.Path('/opt/password-guruji/bin/Password Guruji'),pathlib.Path('/opt/Password Guruji/bin/Password Guruji')) if p.is_file())
     def probe(*args):
@@ -64,11 +66,11 @@ else:
     root=pathlib.Path(__file__).resolve().parents[1]; out=root/'target/native'
     bootstrap={
         'fedora': 'dnf install -y python3 xorg-x11-server-Xvfb xauth dejavu-sans-fonts fontconfig libX11 libXext libXi libXrender libXtst alsa-lib && mkdir -p /usr/share/desktop-directories && xvfb-run -a python3 /workspace/tools/verify-linux-containers.py --inside fedora',
-        'debian': 'apt-get update && apt-get install -y python3 xvfb xauth fonts-dejavu fontconfig libx11-6 libxext6 libxi6 libxrender1 libxtst6 libasound2t64 && mkdir -p /usr/share/desktop-directories && xvfb-run -a python3 /workspace/tools/verify-linux-containers.py --inside debian',
+        'debian': 'set -eu; export DEBIAN_FRONTEND=noninteractive; apt-get update; apt-get install -y --no-install-recommends python3 xvfb fonts-dejavu-core fontconfig libx11-6 libxext6 libxi6 libxrender1 libxtst6 libasound2t64; mkdir -p /usr/share/desktop-directories; echo Starting Debian virtual display; Xvfb :91 -screen 0 1280x800x24 -nolisten tcp & display_pid=$!; trap "kill $display_pid 2>/dev/null || true" EXIT; for attempt in $(seq 1 25); do test ! -S /tmp/.X11-unix/X91 || break; kill -0 $display_pid; sleep 0.2; done; test -S /tmp/.X11-unix/X91; DISPLAY=:91 python3 -u /workspace/tools/verify-linux-containers.py --inside debian',
     }
     for family,image in IMAGES.items():
         with (out/(family+'-container.log')).open('w',encoding='utf-8') as log:
-            subprocess.run(['docker','run','--rm','--env','GITHUB_ACTIONS=true',
+            subprocess.run(['docker','run','--rm','--init','--env','GITHUB_ACTIONS=true',
                 '--mount',f'type=bind,src={root},dst=/workspace,readonly',
                 '--mount',f'type=bind,src={out},dst=/evidence',image,
                 'bash','-c',bootstrap[family]],stdout=log,stderr=subprocess.STDOUT,check=True,timeout=900)

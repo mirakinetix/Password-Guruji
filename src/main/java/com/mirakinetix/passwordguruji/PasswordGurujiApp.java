@@ -425,26 +425,29 @@ public final class PasswordGurujiApp {
         addFormRow(form,c,8,"Notes",new JScrollPane(notes)); addFormRow(form,c,9,"",favorite);
         JScrollPane scroller=new JScrollPane(form); scroller.setPreferredSize(new Dimension(620,470)); scroller.getViewport().setBackground(PANEL);
         int answer=JOptionPane.showConfirmDialog(frame,scroller,existing==null?"New vault record":"Edit vault record",JOptionPane.OK_CANCEL_OPTION,JOptionPane.PLAIN_MESSAGE);
-        if(answer==JOptionPane.OK_OPTION){
-            String name=title.getText().trim();
-            if(name.isEmpty()){JOptionPane.showMessageDialog(frame,"Enter a name for this record.","Name required",JOptionPane.WARNING_MESSAGE);}
-            else{
-                String secret=new String(password.getPassword());
-                List<String>tagList=Arrays.stream(tags.getText().split(",")).map(String::trim).filter(s->!s.isEmpty()).distinct().limit(128).toList();
-                Map<String,String> fields=parseCustom(custom.getText());
-                String totpValue=fields.entrySet().stream().filter(f->f.getKey().equalsIgnoreCase("TOTP secret")).map(Map.Entry::getValue).findFirst().orElse("");
-                if(!totpValue.isBlank()){try{Totp.currentCode(totpValue);}catch(Exception invalid){warn("The authenticator secret must be a valid Base32 value.");return;}}
-                String kind=Objects.toString(category.getSelectedItem(),"Other");
-                VaultEntry next;
-                if(existing==null) next=VaultEntry.create(name,username.getText(),secret,url.getText(),notes.getText(),
-                        kind,folder.getText().trim(),favorite.isSelected(),tagList,fields);
-                else next=existing.revised(name,username.getText(),secret,url.getText(),notes.getText(),kind,
-                        folder.getText().trim(),favorite.isSelected(),tagList,fields);                int ix=existing==null?-1:findById(existing.id());
-                if(ix<0)entries.add(next);else entries.set(ix,next);
-                if(saveVault()){refreshFolders();refreshList();selectById(next.id());}
+        try {
+            if(answer==JOptionPane.OK_OPTION){
+                String name=title.getText().trim();
+                if(name.isEmpty()){JOptionPane.showMessageDialog(frame,"Enter a name for this record.","Name required",JOptionPane.WARNING_MESSAGE);}
+                else{
+                    char[] secretChars=password.getPassword();
+                    String secret;
+                    try { secret=new String(secretChars); } finally { wipe(secretChars);password.setText(""); }
+                    List<String>tagList=Arrays.stream(tags.getText().split(",")).map(String::trim).filter(s->!s.isEmpty()).distinct().limit(128).toList();
+                    Map<String,String> fields=parseCustom(custom.getText());
+                    String totpValue=fields.entrySet().stream().filter(f->f.getKey().equalsIgnoreCase("TOTP secret")).map(Map.Entry::getValue).findFirst().orElse("");
+                    if(!totpValue.isBlank()){try{Totp.currentCode(totpValue);}catch(Exception invalid){warn("The authenticator secret must be a valid Base32 value.");return;}}
+                    String kind=Objects.toString(category.getSelectedItem(),"Other");
+                    VaultEntry next;
+                    if(existing==null) next=VaultEntry.create(name,username.getText(),secret,url.getText(),notes.getText(),
+                            kind,folder.getText().trim(),favorite.isSelected(),tagList,fields);
+                    else next=existing.revised(name,username.getText(),secret,url.getText(),notes.getText(),kind,
+                            folder.getText().trim(),favorite.isSelected(),tagList,fields);                int ix=existing==null?-1:findById(existing.id());
+                    if(ix<0)entries.add(next);else entries.set(ix,next);
+                    if(saveVault()){refreshFolders();refreshList();selectById(next.id());}
+                }
             }
-        }
-        password.setText("");
+        } finally { clearDialogFields(form); }
     }
 
     private String customText(Map<String,String> fields) {
