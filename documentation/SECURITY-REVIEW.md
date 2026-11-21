@@ -1,50 +1,45 @@
 # Focused security review — 21 November 2026
 
-This is a source review plus automated checks, not an independent audit or penetration-test certificate. Use dummy data only.
+This is engineering source review and automated regression evidence, not an independent security audit. The current hardening candidate is not approved for real secrets or production distribution. Use fictional data only after its matching checks are green and the owner approves testing.
 
 ## Cryptographic design retained
 
-VaultStore uses the JDK AES-256-GCM implementation with a 128-bit tag, fresh 16-byte salt and 12-byte nonce per save, and PBKDF2-HMAC-SHA-256 at 600,000 iterations. The magic/version/iteration header is authenticated. Parsing bounds record, field, tag, map, and history counts. Wrong-password and header/ciphertext mutation tests exercise authenticated failure. No custom replacement cipher or weakened work factor was introduced.
+VaultStore retains JDK AES-256-GCM with a 128-bit tag, fresh 16-byte salt and 12-byte nonce on each save, and PBKDF2-HMAC-SHA-256 at 600,000 iterations. Magic/version/iteration metadata is authenticated. The loader bounds file size, fields, records, lists and history; malformed UTF-8, duplicate identifiers/fields, truncation and unexpected trailing data are rejected. Existing short-password and version 1/2 vaults remain readable without weakening the policy for new passwords.
 
-Master password arrays and derived key arrays are cleared on relevant paths; decrypted payload arrays are cleared after parsing. The tests verify wiping the application's held master-password array on locking and removing the reference on shutdown. They cannot prove provider/internal JVM copies are erased.
+## Findings and resolution evidence
 
-## Findings
+Severity describes potential impact, not an assertion that exploitation occurred.
 
-| Priority | Finding | Status / next action |
-| --- | --- | --- |
-| High for real-secret use | Six-character minimum retained for the owner's dummy-data testing. Public sample master password is intentionally 123456. | Unresolved release gate: raise real-use minimum to 15 and separate demo policy before production. Never use sample vaults for real credentials. |
-| High for real-secret use | Vault fields, revisions, Swing text models, ByteArrayOutputStream copies, and clipboard transfers use immutable Strings or retained buffers. GC does not guarantee erasure; crypto providers can copy keys. | Documented architectural limitation. A dedicated memory-lifecycle redesign and independent review are required; do not claim complete zeroization. |
-| Medium | Immediately locking a newly created vault left a stale creation form. | Fixed by rebuilding the unlock form; actual create/lock/wrong-password/unlock test added. |
-| Medium | Copied data was retained by separate timers and was not cleared immediately on lock/close. | Centralized clipboard lifecycle; timer, ownership-change, and shutdown/lock cleanup implemented. Real system clipboard timeout tested. OS clipboard history/managers, race conditions, and busy clipboard at process exit remain outside guaranteed control. |
-| Medium | Windows vault file ACLs inherit destination-directory policy; no explicit user-only DACL is applied. Backup/export access depends on destination permissions. | Unresolved: use a private user folder; test inherited ACLs and design an explicit Windows ACL policy before real-secret use. POSIX vault files are set to 0600 and tested on Linux/macOS. |
-| Medium | Save falls back to non-atomic replacement on filesystems without atomic moves; directory fsync/crash durability is not guaranteed. Concurrent writers are not locked. | Unresolved: single app instance and local filesystem only; crash/power-loss and concurrent-write tests still required. |
-| Medium | Plaintext CSV export intentionally contains secrets and can contain spreadsheet formula strings. | Existing consent prompt retained. Treat as sensitive data, never open in spreadsheet software, and review a separate safe spreadsheet-export format before expanding use. |
-| Low | CSV could export an empty custom-field value but rejected that value on import. | Fixed and covered by Unicode/quotes/newline/empty-field round trip. |
-| Medium | Installers are unsigned; Mac notarization absent. | Expected candidate limitation; Gatekeeper/SmartScreen acceptance unverified. No protection bypasses recommended. |
-| Medium | Password/crypto work occurs on Swing's event thread and can temporarily freeze the UI. Resource limits do not prevent all large-input memory pressure. | Stress/performance testing and background-worker design remain. |
-| Medium/High build-tool risk | The original Maven plugin graph contained advisory matches for BeanUtils, Commons IO/Lang, Plexus Utils, Aircompressor and Snappy. | Updated stable Maven plugins; explicitly selected fixed BeanUtils 1.11.0 and Plexus Utils 3.6.1 where the updated plugins still inherited affected versions. The expanded local scan of 91 package versions returned zero matches. These libraries are build tools, not application runtime dependencies. |
+| Severity | Evidence / finding | Resolution and regression evidence | Residual limitation |
+| --- | --- | --- | --- |
+| High | Six-character creation policy was suitable only for demonstrations. | New real-mode creation/password changes require 15 characters; explicit sample mode permits six. Policy and real Swing creation tests pass locally. | Legacy passwords still unlock; users must deliberately strengthen them. The committed fictional sample password is public. |
+| High | Concurrent app instances could overwrite newer records. | Persistent sidecar file locks and an observed encrypted-file digest reject stale writers. Stale-write, removed-vault and child-process lock-release tests pass locally. | Cooperating local instances only; hostile processes and shared/network filesystems are not covered. |
+| High | Failure after in-memory edits could leave UI and disk inconsistent. | Central rollback restores the last persisted immutable record snapshot; actual UI stale-writer regression passes locally. | Broader manual edit/import/restore failure combinations remain necessary. |
+| High | Locking could depend on a successful redundant save; secret dialogs could remain visible. | Lock now clears state without requiring disk writes, wipes/disposes owned text dialogs, stops TOTP and clears owned clipboard. Dialog clearing test passes locally. | Final disk-conflict lock regression passes locally; session sleep/resume and OS lock integration remain manual. |
+| High | Export could overwrite the active vault; output could replace coordination sidecar. | Shared destination validation rejects active vault aliases and lock destinations for export/backup. | Destination-protection regressions pass locally; users can still deliberately replace unrelated files after confirmation. |
+| Medium | Windows permissions inherited from destination folders. | SecureFiles applies user-only Windows ACLs or POSIX 0600 before writing sensitive temporary files; fails closed if unsupported. Vault/backup/lock permission tests pass locally. | Admin/root access, filesystem policy and malicious writable parent-directory races are not prevented. Use private local directories. |
+| Medium | Non-atomic fallback risked partial replacement. | Only atomic sibling replacement is accepted. File data is forced; directory force attempted where supported. Injected write/replace/unsupported-move failures, read-only file and crash-before-commit tests pass locally. | Sudden hardware power loss, controller caches and every filesystem are not simulated. A hard kill can leave a private encrypted pending file; do not claim automatic crash cleanup. |
+| Medium | Clipboard cleanup could erase unrelated content or retain old owned data. | Ownership token and a single timer distinguish owned transfers, clear on lock/close and retry busy clipboard. Actual clipboard lifecycle and identical-text replacement tests pass locally. | OS history, external clipboard managers and busy clipboard at process exit cannot be guaranteed erased. |
+| Medium | CSV export cells could be interpreted as formulas; import needed stricter validation. | Versioned CSV uses reversible text markers and stricter parsing; formula/delimiter/Unicode/empty-field and malformed-input tests pass locally. | CSV remains plaintext and highly sensitive. Other spreadsheet/import software may reinterpret edited files. |
+| Medium | Expensive cryptographic work blocked Swing's event thread. | Vault tasks run in a background worker behind a modal progress window; accepted state updates stay on the event thread. | Large-vault responsiveness, unusual interruption and OS sleep/resume require further testing. |
+| High residual for real-secret assurance | Immutable record strings, Swing models, provider/JVM copies and external OS buffers cannot all be erased reliably. | Explicit password/key/payload buffers and growable encoding buffers are cleared on relevant paths; held master-password clearing is tested. | No complete zeroization claim. A dedicated memory-lifecycle review and independent security assessment remain production gates. |
+| Medium/High build-tool risk | Older plugin dependencies matched advisories. | Stable plugin updates and narrowly scoped fixed dependency overrides; expanded local OSV scan: 96 package versions, zero matches. | Time-bound inventory lookup, not proof of vulnerability absence. See scope below. |
+| Medium distribution risk | Windows/Mac installers are unsigned and Mac notarization is absent. | Requirements, costs and eligibility documented in SIGNING-REQUIREMENTS.md. No credentials or paid setup added. | Consumer SmartScreen/Gatekeeper acceptance unverified; production distribution blocked. |
 
-No critical cryptographic break was demonstrated by this limited assessment. This is not evidence that none exists.
+No critical cryptographic break was demonstrated. This limited assessment cannot establish that none exists.
 
-## Backup, integrity, logs and temporary files
+## Local test evidence and pending verification
 
-Saves write encrypted bytes to a temporary sibling, flush the file, then replace the destination. The temporary file is deleted in finally. Tests check plaintext is absent from the encrypted file, repeated saves differ, tampering fails, no pending file remains after successful save, and an encrypted backup can be loaded and re-encrypted under a new master password. Full file-picker backup/restore UI and failure-injection scenarios remain manual/untested.
+The recorded local desktop run contains **75 tests: 74 passed, zero failures/errors, one skipped (Windows symbolic-link creation privilege unavailable)**: CoreTest 27, CompatibilityTest 21, DesktopTest 4, FinalSafetyTest 6, StorageHardeningTest 12 and UiHardeningTest 5. Compatibility includes explicit legacy-v1/v2 fixtures and a 1,000-record fixture. The final local rerun includes destination protection and disk-independent locking; consult RELEASE-READINESS.md for hosted results and candidate commit. New hosted CI is pending; older successful workflow runs do not validate this hardening revision.
 
-Source inspection found no application logging of master passwords or record contents. Error dialogs can expose filesystem paths. Test data is synthetic, and native installation checks use disposable vault paths. No real user vault was read by this work. CSV is intentionally plaintext. OS swap, crash dumps, clipboard history and filesystem snapshots are not sanitized by the app.
+Tests use synthetic records and disposable paths. No personal vault or real password data was used. Source review found no intended application logging of master passwords or record contents; error messages can reveal local paths. OS swap, process dumps, backups, snapshots and clipboard history are not sanitized by this app.
 
-## Dependency review
+## Dependency and source scan boundaries
 
-`tools/check-dependencies.py` queries OSV using public Maven package names and versions only. Advisory matches, incomplete plugin resolution, or service failures fail the security check. The timestamped JSON report and resolved inventories are uploaded to the security workflow. This scope includes resolved application/test dependencies, explicitly declared Maven plugins, and their resolved transitive dependencies. It excludes Maven core, undeclared lifecycle plugins, dynamically selected test-provider components, JDK security advisories, operating-system packages, WiX and other packaging tools. The application has no external runtime Java libraries.
+The scanner sends public Maven coordinates/versions to OSV. It covers resolved application/test dependencies, declared Maven plugins, dynamically selected JUnit Platform Surefire provider and their resolved transitive dependencies. It excludes the Maven process/core distribution, undeclared lifecycle plugins/providers, JDK advisories, OS packages and installer tools. The application has no external runtime Java libraries.
 
-Advisories addressed include GHSA-wxr5-93ph-8wr9, GHSA-78wr-2p64-hpwj, GHSA-vx9q-rhv9-3jvg, GHSA-j288-q9x7-2f5v, GHSA-6fmv-xxpf-w3cw and GHSA-8wh2-6qhj-h7j9. A clean advisory lookup is time-bound and does not prove the code free of vulnerabilities.
+Missing inventories, incomplete plugin/provider resolution, advisory matches and request failures fail the scan. An incomplete report is written before scanning, so it cannot be mistaken for a stale clean report. The workflow retains inventories and timestamped results. The local expanded scan returned zero advisory matches for 96 versions.
 
-Actions are pinned to commit hashes, token permissions are read-only, and no secrets are passed to PR code. Standard public hosted runners are used; artifacts/cache have finite retention. Do not add paid/larger runners without approval. Signing keys and deployment credentials are intentionally absent.
+Tracked text files also receive high-confidence private-key/GitHub-token/AWS-access-key pattern checks. The local run checked 40 files with no matches. Results identify file/line/rule without revealing matched values. This is a limited detector, not exhaustive credential discovery; encrypted/binary files and repository history are not scanned.
 
-## Evidence and sources
-
-Actual run outcomes and pending gates are recorded in RELEASE-READINESS.md.
-
-- [JDK 25 packaging requirements](https://docs.oracle.com/en/java/javase/25/jpackage/packaging-overview.html)
-- [GitHub hosted runner platforms and public-repository pricing](https://docs.github.com/en/actions/reference/runners/github-hosted-runners)
-- [OSV query API](https://google.github.io/osv.dev/post-v1-query/)
-- [RFC 6238 TOTP vectors](https://www.rfc-editor.org/rfc/rfc6238)
+Actions are commit-pinned, tokens read-only, and signing secrets absent. No paid runners, signing account, certificate or membership were configured. [Signing prerequisites](SIGNING-REQUIREMENTS.md) and [release gates](RELEASE-READINESS.md) remain authoritative for distribution.

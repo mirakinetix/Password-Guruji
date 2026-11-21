@@ -42,6 +42,10 @@ This build does not provide cloud sync, live breach monitoring, account recovery
 
 - [Cross-platform candidate installation and testing](documentation/CROSS-PLATFORM-BETA.md)
 - [Release readiness and verified evidence](documentation/RELEASE-READINESS.md)
+- [Release notes](documentation/RELEASE-NOTES.md)
+- [Contributing](CONTRIBUTING.md)
+- [Privacy and offline operation](documentation/PRIVACY.md)
+- [Signing requirements](documentation/SIGNING-REQUIREMENTS.md)
 - [Focused security review](documentation/SECURITY-REVIEW.md)
 - [Sample vault and password](documentation/SAMPLE-VAULT.md)
 - [User Manual](documentation/USER-MANUAL.md)
@@ -63,8 +67,8 @@ The packaging script writes the ZIP and a SHA-256 checksum under target. It uses
 
 ## Vault storage and security
 
-By default, Windows stores the vault at %LOCALAPPDATA%\Mirakinetix\PasswordGuruji\vault.pgv. Other systems use ~/.local/share/Mirakinetix/PasswordGuruji/vault.pgv. The first-run screen lets the user choose a different location.
+By default, Windows stores the vault at %LOCALAPPDATA%\Mirakinetix\PasswordGuruji\vault.pgv. macOS uses ~/Library/Application Support/Mirakinetix/PasswordGuruji/vault.pgv. Linux uses $XDG_DATA_HOME/Mirakinetix/PasswordGuruji/vault.pgv, falling back to ~/.local/share. Existing legacy-location vaults remain discoverable. The first-run screen lets the user choose a different location.
 
-The local-testing master-password minimum is temporarily six characters for ease of evaluation. Raise it to 15 after local testing; the six-character setting is not intended for a public production release. The master password cannot be recovered, so users must retain it and keep encrypted backups.
+New normal vaults and master-password changes require at least 15 Unicode characters. Existing shorter passwords still unlock legacy vaults; strengthen them in Settings. Only explicit sample mode permits six-character demonstration passwords. The master password cannot be recovered, so users must retain it and keep encrypted backups.
 
 Vault data uses AES-GCM encryption with a PBKDF2-HMAC-SHA-256-derived key. See the Vault Format document for current parameters and compatibility. These implementation details do not constitute a security audit or guarantee of safety.

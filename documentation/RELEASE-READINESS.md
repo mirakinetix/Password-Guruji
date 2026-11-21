@@ -1,95 +1,64 @@
 # Password Guruji — Release-readiness report
 
-Date: 21 November 2026. Decision: **ready for controlled, synthetic-data functional testing after owner approval; not ready for real credentials or an unrestricted public release.** No release was published, no tester invitations were sent, and no branch was merged.
+Date: 21 November 2026. **Production and real-secret use remain blocked. The current hardening candidate is pending hosted verification and owner review before fictional-data beta testing.** No merge, public release, tester invitation or paid signing setup is authorized by this report.
 
-## Repository and inspection
+## Repository and candidate identity
 
-Verified local directory: `C:\Mirakinetix\mirakinetix-java\PasswordGuruji`.
-Verified origin: `https://github.com/mirakinetix/Password-Guruji.git` (public).
-Working branch: `feature/cross-platform-beta-readiness`.
+Project: `C:\Mirakinetix\mirakinetix-java\PasswordGuruji`.
+Origin: https://github.com/mirakinetix/Password-Guruji.git.
+Branch: `feature/cross-platform-beta-readiness`.
 [Draft pull request #2](https://github.com/mirakinetix/Password-Guruji/pull/2).
 
-The starting checkout was clean on `feature/footer-links-finalization`, commit `6c7c10f`, while remote main was `681202c`. Existing footer work was preserved in the new branch. Remote main was not changed.
+Record the final reviewed commit and matching workflow IDs before handing installers to testers. Do not mix earlier artifacts with the current source revision.
 
-Inspected the Maven configuration, all seven original production Java classes, source resources/word list, vault format, sample vault tooling, icon tools, Windows packaging script, existing documentation, branches/remotes and installed JDK/Maven. There were no tests or Actions workflows. The implemented UI is Swing, not JavaFX; no JavaFX dependencies exist. The old compiler target was Java 17 despite a local Java 25 JDK.
+## Current hardening
 
-## Changes
+- Real-mode master-password creation/change minimum is 15 characters; explicit sample mode remains six and legacy short passwords can still unlock.
+- Private file permissions, atomic-only replacement, persistent file coordination and stale-write rejection; failed edits roll back to persisted records.
+- Modal dialogs clear on lock; lock no longer relies on saving. Clipboard ownership cleanup and background cryptographic tasks improve lifecycle behavior.
+- Export/backup reject active vault/lock destinations. Versioned CSV encoding neutralizes spreadsheet-formula cells while preserving round trips.
+- Strict malformed-vault parsing, legacy compatibility fixtures, failure injection, child-process lock/crash checks and 1,000-record fixture.
+- Expanded security inventory includes Surefire's provider graph; limited tracked-source credential scanning added.
+- Installer verification is being extended for uninstall/reinstall and data preservation. New hosted execution is still required.
 
-- Java 25 build; pinned stable Maven plugins, JUnit functional tests, optional desktop-test profile enabled in every CI job.
-- Four standard hosted runner targets, Maven caching, bounded jobs, read-only tokens, pinned Actions, seven-day evidence/installer artifacts, no release/deployment steps or signing secrets.
-- Native Windows MSI/EXE, Ubuntu DEB/RPM, Intel Mac PKG/DMG and Apple Silicon PKG/DMG. Each includes a runtime, documentation and fictional samples.
-- Actual installation checks on disposable runners, plus seven functional checks using the installed JAR and bundled runtime.
-- Fixed stale creation form after first lock, empty CSV custom-field import, clipboard clearing on lock/close, and clipboard timer replacement behavior.
-- Native macOS/Linux data locations with legacy-vault discovery; Windows behavior preserved.
-- Resolved build-tool dependency advisories through stable plugin updates and two narrowly scoped dependency overrides. Added an OSV inventory scan and Dependabot configuration.
-- Installation/testing guide, security review, safe bug-report template and updated source-build guidance.
+## Current local evidence
 
-## Verified results
+The recorded local `mvn -B -Pdesktop verify` run passed **75 tests: 74 passed, zero failures/errors, one skipped (Windows symbolic-link creation privilege unavailable)**: CoreTest 27, CompatibilityTest 21, DesktopTest 4, StorageHardeningTest 12, UiHardeningTest 5. These reports include real Swing and Windows system clipboard interaction. Later destination-protection/lock refinements need the final rerun before this count describes the completed candidate.
 
-The source/package implementation at **812f110** passed the following runs. Later documentation-only commits do not change application behavior; consult the PR's latest checks for their reruns.
+The expanded local OSV scan passed: **96 resolved package versions, zero advisory matches**. The limited credential scan checked **40 tracked text files, zero matches**. Python compilation and scanner whitespace checks passed. These are local results, not hosted CI results.
 
-- [Four-platform build, test, package and installation run](https://github.com/mirakinetix/Password-Guruji/actions/runs/44867387200): **success, all four jobs**.
-- [Expanded dependency-security run](https://github.com/mirakinetix/Password-Guruji/actions/runs/44867387246): **success; 91 resolved package versions queried, zero advisory matches**.
-- Local Windows 11, Temurin 25.0.4.1, Maven 3.9.16: `mvn -B -Pdesktop verify` — **31 tests, 0 failures, 0 errors, 0 skipped**.
+Failure tests cover injected write/replace failure, unsupported atomic moves, read-only destination, a stale writer, removed vault, subprocess lock release and crash before commit. They do not prove every power-loss or filesystem behavior. Permission assertions apply to the current platform; the revised code needs Linux/macOS CI validation.
 
-| Environment | Automated tests | Installed runtime checks | Installer / startup evidence |
-| --- | --- | --- | --- |
-| Local Windows 11 x64 | 31 passed | Not run locally | Actual Swing lifecycle and Windows system clipboard tested |
-| Windows Server 2022 x64 runner | 31 passed | 7 passed | MSI installed; installed launcher stayed running; EXE generated |
-| Ubuntu 24.04 x64 / Xvfb | 31 passed | 7 passed | DEB installed; installed launcher stayed running; RPM metadata inspected |
-| macOS 15 Intel | 31 passed | 7 passed | PKG installed; installed launcher stayed running; DMG integrity verified |
-| macOS 15 Apple Silicon | 31 passed | 7 passed | ARM64 PKG installed; installed launcher stayed running; DMG integrity verified |
+## Historical hosted evidence — superseded source only
 
-This confirms functional compatibility in those environments, not every version of Windows/Linux/macOS or every desktop configuration. The desktop lifecycle test opens a real Swing window and uses controls for create, lock, reject wrong password, unlock, idle-lock callback, and close. It checks password-array clearing and immediate clipboard cleanup. The idle timer's threshold path is exercised by setting last activity; this is not a wall-clock sleep/resume test.
+Earlier source/package commit **812f110** passed [four-platform run 44867387200](https://github.com/mirakinetix/Password-Guruji/actions/runs/44867387200) and [security run 44867387246](https://github.com/mirakinetix/Password-Guruji/actions/runs/44867387246). Those runs recorded 31 tests per platform, seven installed-runtime checks and a 91-version dependency inventory.
 
-Core coverage includes encrypted round trips with Unicode/custom fields/history/recycle bin, wrong-password and tamper rejection, encrypted backup re-encryption, generation options/invalid input, passphrase resources, six RFC 6238 vectors, CSV edge cases, sample compatibility, native/legacy paths, and POSIX permissions where supported. The Windows permission test checks readability only and is not a DACL-isolation test.
+These results establish the earlier baseline only. They do **not** verify current file locking, permissions, policy, CSV changes, new tests or revised installer lifecycle scripts. Existing downloaded artifacts in `target/cross-platform-evidence/` must not be presented as the new hardened build.
 
-Installed-runtime checks cover create/load, encrypted record save/load, wrong password, password generator, passphrase word list, TOTP vector and tampering. The standalone native launcher check asserts that the process survives eight seconds, then terminates it. It does not assert screenshots or a graceful native-process exit. Graceful window shutdown is checked separately in DesktopTest.
+## Hosted and installer verification still pending
 
-## Artifacts and local handoff
+| Target | Candidate status | Required evidence |
+| --- | --- | --- |
+| Windows x64 | Pending new hosted run | Tests; MSI and EXE generation; installation; installed-runtime probe; launcher; uninstall/reinstall and synthetic-data preservation |
+| Ubuntu x64 | Pending new hosted run | Tests under Xvfb; DEB install/runtime/launcher; uninstall/reinstall and data preservation; RPM generation/metadata |
+| macOS Intel | Pending new hosted run | Tests; PKG/DMG generation; PKG installation/runtime/launcher; uninstall/reinstall; data preservation |
+| macOS Apple Silicon | Pending new hosted run | Same checks on native ARM64 runner |
 
-The workflow run above has these downloadable Actions artifacts:
+Hosted Windows Server is not consumer Windows 11. Hosted Mac installation is not consumer Gatekeeper/download-quarantine acceptance. RPM installation on Fedora/RHEL-family systems, Wayland, physical Macs, visual scaling/accessibility, native installer wizards and OS sleep/resume remain separate checks. Launcher survival is a smoke test, not visual proof of a usable UI.
 
-- `installers-windows-2022-x64`: MSI and EXE with SHA-256 files.
-- `installers-ubuntu-24.04-x64`: DEB and RPM with SHA-256 files.
-- `installers-macos-15-intel-x64`: Intel PKG and DMG with SHA-256 files.
-- `installers-macos-15-aarch64`: ARM64 PKG and DMG with SHA-256 files.
-- Matching `evidence-*` artifacts: JUnit XML/text, build metadata, installation-verification JSON, installed-runtime probe logs and launcher/installer logs.
+## Artifact handoff
 
-Downloaded copies are under `target/cross-platform-evidence/44867387200/` in the local project. Dependency evidence is under `target/cross-platform-evidence/44867387246/`. These generated outputs are ignored by Git. GitHub artifacts expire after seven days; local copies are retained. For a later candidate, use its matching run artifacts and checksums, not a mixture of builds.
+Use only installers, hashes, metadata, test reports and installation-verification JSON from the same successful candidate run. Actions artifacts expire after seven days. Native package version 1.0.0 is an Apple-compatible packaging build number; application version 0.1.0 remains a beta candidate, not a stable release claim. Each build records its source commit and architecture.
 
-Native package build number 1.0.0 satisfies Apple's version rules; application version remains 0.1.0. This is not a declaration of a stable release. Source branch, commit and native architecture are recorded in each build-metadata JSON.
+No installer should be handed off until all required candidate checks pass. The tester then follows [CROSS-PLATFORM-BETA.md](CROSS-PLATFORM-BETA.md), the installation guide and manual/user guides with disposable fictional data only.
 
-## Failures encountered and resolved
+## Remaining production gates
 
-- Initial desktop checks exposed the stale creation form and an incompatible clipboard identity comparison on Windows. Both were corrected; the same tests then passed.
-- Initial Mac packaging rejected version 0.1.0. Native package numbering was separated from the application version.
-- Ubuntu installer setup failed because the minimal runner lacked a desktop-menu directory. The CI environment now supplies it; the DEB installs successfully.
-- One runner could not resolve a Maven plugin from Central. Versions are pinned and Maven uses `-U` to avoid a cached missing-artifact result. Later runs resolved dependencies and passed; no failing tests were skipped.
-- Expanded build-plugin scanning found advisory matches in six library families. Stable plugin updates and fixed-version overrides removed the matches in the final resolved scope.
-- Earlier superseded runs were cancelled by workflow concurrency on new pushes. They are not counted as successful verification.
+1. Complete final local rerun and current four-platform/security workflows; review exact commit and artifacts.
+2. Complete manual consumer installation, uninstall/reinstall, upgrade/rollback, visual accessibility, sleep/resume, backup/restore file-picker and large-vault stress checks. Record gaps honestly.
+3. Obtain independent security review, including secret-memory lifetime and cryptographic/storage design. Existing arrays are wiped where practical; complete JVM/OS secret erasure is not guaranteed.
+4. Decide and approve signing/notarization identity, eligibility and cost; verify final downloadable installers on clean consumer machines. See [SIGNING-REQUIREMENTS.md](SIGNING-REQUIREMENTS.md).
+5. Establish maintenance policy for JDK, Maven/toolchain and installer vulnerabilities excluded from the current OSV scope; decide licensing and distribution policy.
+6. Owner explicitly approves merge, beta invitation and any later production release as separate decisions.
 
-## Security and limitations
-
-See [the focused security review](SECURITY-REVIEW.md) for prioritized findings, cryptographic design and scan boundaries. AES-256-GCM/PBKDF2 parameters were preserved. No real credentials or personal vault data were used.
-
-Unresolved real-use gates: six-character testing minimum; immutable secret strings and retained buffers; inherited Windows ACLs; concurrent-writer risk; non-atomic fallback and untested crash durability; CSV plaintext/formula risk; unsigned/unnotarized packages; no independent cryptographic review. No critical break was demonstrated, but that is not proof of absence.
-
-The clean OSV result is limited to application/test Maven artifacts, declared plugins and resolved transitive plugin libraries. It does not cover JDK vulnerabilities, Maven core, undeclared lifecycle plugins, dynamically selected test providers, OS packages or installer tools. Runtime/JDK update policy remains a release-maintenance task.
-
-## Untested or only partly tested
-
-- Consumer Mac Gatekeeper/download quarantine, Apple signing/notarization, SmartScreen reputation, physical Mac hardware and visual accessibility/scaling.
-- EXE installer wizard, DMG drag-install behavior, RPM installation on an RPM distribution, uninstall/upgrade/rollback behavior.
-- Wayland and other Linux desktops; OS sleep/resume/session-lock integration; platform clipboard-history managers.
-- Full file-picker backup/restore workflows, large vault stress, disk-full/read-only errors, forced crashes/power loss, concurrent instances, malformed-input fuzzing and explicit legacy-v1/v2 fixtures.
-- Vault-unlock MFA, cloud sync, browser autofill, breach monitoring and mobile apps are outside this implementation.
-
-## Before inviting testers or releasing
-
-1. Owner reviews the draft PR, known limitations, and exact candidate artifacts; explicitly approves any merge and tester invitation/public beta.
-2. A designated tester follows [CROSS-PLATFORM-BETA.md](CROSS-PLATFORM-BETA.md) and the existing user/manual-test guides with dummy data only.
-3. Record installer trust prompts and complete manual installation/upgrade/uninstall and visual checks on supported consumer environments; obtain RPM-family coverage separately.
-4. Before real-password use: raise the minimum to 15, address high-priority security findings, perform independent review and crash/concurrency testing, decide signing/notarization and licensing/distribution policy.
-
-No paid/larger runner, signing service or Apple membership was configured. Standard runners for this public repository are documented as free; billing/account budgets were not changed. Storage retention is bounded, and no production deployment or release workflow was added.
+See [SECURITY-REVIEW.md](SECURITY-REVIEW.md) for resolved findings, severity, evidence and residual risks. No real vault data, paid services, billing changes or production deployment were used.

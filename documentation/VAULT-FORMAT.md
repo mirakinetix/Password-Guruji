@@ -29,6 +29,6 @@ New saves use version 3. The reader accepts versions 1, 2, and 3; a successful s
 
 ## Write behavior and limits
 
-Vault updates are written to a temporary file, flushed, and atomically replaced when the file system supports atomic replacement. The file size limit is 64 MiB, the record limit is 100,000, and each encoded field is limited to 2,000,000 bytes. Authenticated decryption fails if the password is wrong or ciphertext/header data was modified.
+Vault updates are written to a temporary file, flushed, and atomically replaced. If atomic replacement is unsupported, the save fails without a non-atomic fallback. Temporary files, vaults, backups and persistent .lock sidecars receive owner-only permissions (POSIX 0600 or a Windows current-user ACL). Cooperative writers hold an OS file lock; saves compare the encrypted file digest with the revision last opened to reject stale writers. Keep the parent directory private; hostile same-user or writable-parent path races are outside this guarantee. The file size limit is 64 MiB, the record limit is 100,000, and each encoded field is limited to 2,000,000 bytes. Authenticated decryption fails if the password is wrong or ciphertext/header data was modified.
 
 This is an implementation description, not a security audit. PBKDF2 is used as the compatibility option in the product baseline; work-factor benchmarking and independent cryptographic review remain release-readiness work.
