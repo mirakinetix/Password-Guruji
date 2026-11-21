@@ -50,16 +50,34 @@ final class SecureFiles {
         throw new IOException("This filesystem cannot enforce private file permissions. Choose a local secure filesystem.");
     }
     static void writeAtomic(Path destination,byte[] bytes,Operations operations) throws IOException {
+        writeAtomic(destination,bytes,operations,false);
+    }
+
+    static void writeNewAtomic(Path destination,byte[] bytes,Operations operations) throws IOException {
+        writeAtomic(destination,bytes,operations,true);
+    }
+
+    private static void writeAtomic(Path destination,byte[] bytes,Operations operations,boolean newFile) throws IOException {
         destination=destination.toAbsolutePath().normalize();
         Files.createDirectories(destination.getParent()); rejectLink(destination);
-        if(Files.exists(destination)) {
+        if(Files.exists(destination,LinkOption.NOFOLLOW_LINKS)) {
+            if(newFile) throw new FileAlreadyExistsException(destination.toString());
             var dos=Files.getFileAttributeView(destination,DosFileAttributeView.class);
             if(!Files.isWritable(destination)||(dos!=null&&dos.readAttributes().isReadOnly()))
                 throw new AccessDeniedException(destination.toString(),null,"The destination is read-only.");
         }
         Path temp=Files.createTempFile(destination.getParent(),".password-guruji-", ".pending");
         try {
-            ownerOnly(temp); operations.write(temp,bytes); operations.replace(temp,destination);
+            ownerOnly(temp);
+            operations.write(temp,bytes);
+            if(newFile) {
+                // Publishing a completed inode by linking it fails if the name
+                // already exists, including when it appeared during the write.
+                try { Files.createLink(destination,temp); }
+                catch(UnsupportedOperationException unsupported) {
+                    throw new IOException("This filesystem cannot safely publish a new backup. Choose another local folder.",unsupported);
+                }
+            } else operations.replace(temp,destination);
             // Directory fsync is supported by some Unix filesystems, not by Windows providers.
             if(Files.getFileAttributeView(destination,PosixFileAttributeView.class)!=null) {
                 try(FileChannel directory=FileChannel.open(destination.getParent(),StandardOpenOption.READ)) { directory.force(true); }

@@ -2,7 +2,7 @@
 
 **Brand:** Mirakinetix. **Application:** 0.1.0 beta candidate. **Native package build:** 1.0.1.
 
-Use synthetic test data only. These unsigned packages are not production-approved and have not received an independent security audit. The numeric native version is an installer build number, not a stable 1.0 application release. Hosted installation evidence is pending; consult [Release readiness](RELEASE-READINESS.md) for actual results.
+Use synthetic test data only. These unsigned packages are not production-approved and have not received an independent security audit. The numeric native version is an installer build number, not a stable 1.0 application release. Check the recorded revision and matching installer results in [Release readiness](RELEASE-READINESS.md).
 
 ## Download and verify
 
@@ -64,7 +64,7 @@ Use a private local folder on a filesystem supporting private file permissions a
 
 A persistent sibling such as `vault.pgv.lock` coordinates access. Its presence is normal even after the app exits. Do not delete or edit it to bypass a conflict, and never select it as a vault or backup destination.
 
-Before an upgrade, create an encrypted backup, record its location and the password that protects it, then close every app window. Keep a copy of the prior installer. Install the reviewed candidate and verify a disposable vault before proceeding with testing. Do not assume an older application can read a vault rewritten by a newer build.
+Backup creation requires a new filename and a filesystem that supports publishing through a hard link. Recovery can read an authenticated backup from read-only storage without a writable lock file. Before an upgrade, create an encrypted backup, record its location and the password that protects it, then close every app window. Keep a copy of the prior installer. Install the reviewed candidate and verify a disposable vault before proceeding with testing. Do not assume an older application can read a vault rewritten by a newer build.
 
 If an update or save fails, preserve the existing vault and backup. Do not overwrite the only copy or repeatedly force a save. Close other instances and reopen the latest vault; for an unsupported filesystem, copy the closed vault to a private supported local folder and open that copy. A corrupt or wrong-password vault cannot be repaired by renaming its lock file. Restore a known-good encrypted backup to a separate test location first.
 

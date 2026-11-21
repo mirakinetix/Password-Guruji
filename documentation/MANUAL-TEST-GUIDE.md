@@ -110,3 +110,11 @@ Never include the master password, generated passwords, TOTP secret/code, vault 
 - Test installer upgrade and removal with disposable data. Confirm the vault survives. Do not bypass SmartScreen or Gatekeeper; record unsigned-package warnings.
 
 Automated fault injection covers disk-full and failed atomic replacement. Physical power loss, real exhausted volumes, accessibility tooling, and downloaded-file OS trust prompts require separate controlled manual validation. Do not describe these as passed based on automated compilation or startup alone.
+
+## PR #2 review regressions
+
+- Open a synthetic CSV record with Unicode and literal markup in its title, category, folder, tags, and custom-field names. Check details and the folder filter. The app should display text without interpreting it.
+- Cancel the backup picker and compare the vault hash before and after. Try saving a backup over a second disposable vault and verify both vault hashes remain unchanged. Then save to a new filename and confirm the backup hash matches the source.
+- Restore a synthetic backup from a read-only folder or medium. Confirm the app creates no backup-side lock file and a wrong password is rejected.
+- Round-trip a large Unicode custom field. An export above the supported size limit should report an error and preserve any existing destination.
+- Reveal a fictional password, select it, and use the platform keyboard copy shortcut. Check timeout, lock, and normal exit. Replace it with unrelated clipboard text and verify that cleanup leaves that copy alone. OS clipboard history can retain its own copies.

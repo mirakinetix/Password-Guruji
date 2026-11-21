@@ -28,9 +28,16 @@ Severity describes potential impact, not an assertion that exploitation occurred
 
 No critical cryptographic break was demonstrated. This limited assessment cannot establish that none exists.
 
-## Local test evidence and pending verification
+## PR #2 review findings and regression coverage
 
-The recorded local desktop run contains **75 tests: 74 passed, zero failures/errors, one skipped (Windows symbolic-link creation privilege unavailable)**: CoreTest 27, CompatibilityTest 21, DesktopTest 4, FinalSafetyTest 6, StorageHardeningTest 12 and UiHardeningTest 5. Compatibility includes explicit legacy-v1/v2 fixtures and a 1,000-record fixture. The final local rerun includes destination protection and disk-independent locking; consult RELEASE-READINESS.md for hosted results and candidate commit. New hosted CI is pending; older successful workflow runs do not validate this hardening revision.
+- Record labels and folder renderers disable Swing HTML parsing before setting data. The styled list renderer escapes record strings before inserting them into its fixed template. A synthetic imported link with Unicode remains literal, has no HTML view, and produces no connection to the test's loopback listener.
+- Backup publication refuses all existing destinations, including files that appear between validation and final publication. A private, flushed temporary file is published at the new name atomically by hard link. Backup does not resave the source. Tests verify a second vault remains unchanged, exercise the creation race, and check source bytes on cancellation.
+- Restore reads and authenticates the backup snapshot without creating a sidecar. Ordinary opens and writes retain their existing locks and conflict checks. Read-only recovery, wrong-password rejection, and no-sidecar behavior are covered.
+- CSV v2 keeps reversible formula markers and now shares the same file and cell limits between reader and writer. Tests exercise encoded Unicode at the vault field boundary, exact and oversized cells, and preservation of a prior destination on failure.
+- Displayed values route keyboard copy through the same clipboard ownership mechanism as Copy. Desktop tests check timeout, locking, normal shutdown, and retention of a later clipboard item with identical text. OS clipboard history and external clipboard managers can still retain data.
+- Filesystems that cannot create hard links fail closed when writing a backup. An interrupted write can leave a private temporary file. Ordinary writable-vault permissions and atomic replacement rules remain in force.
+
+See [Release readiness](RELEASE-READINESS.md) for revision-specific results.
 
 Tests use synthetic records and disposable paths. No personal vault or real password data was used. Source review found no intended application logging of master passwords or record contents; error messages can reveal local paths. OS swap, process dumps, backups, snapshots and clipboard history are not sanitized by this app.
 

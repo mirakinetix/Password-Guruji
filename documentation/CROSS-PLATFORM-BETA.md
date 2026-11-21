@@ -1,6 +1,6 @@
 # Password Guruji — Cross-platform beta candidate
 
-**Fictional credentials only. Current hardening candidate is pending its new hosted checks and owner approval. Production and real-secret use remain blocked.**
+**Fictional credentials only. Verify the exact candidate revision and obtain owner approval before distribution. Production and real-secret use remain blocked.**
 
 ## Scope and architecture
 
@@ -96,4 +96,4 @@ The application has no dedicated diagnostic logging system. Capture terminal err
 - `python tools/package-native.py`: build native installers on the current supported OS after verify. Requires JDK 25/JAVA_HOME; WiX on Windows, rpm/fakeroot on Linux, Apple command-line tools on macOS.
 - `tools/verify-installation.py` refuses to run outside disposable GitHub Actions environments.
 
-The recorded local hardening run passed 69 tests; final refinements require a final rerun and the new hosted matrix remains pending. See RELEASE-READINESS.md for the authoritative final count, commit and run IDs. Functional tests do not certify cryptography, measure all entropy properties, or prove absence of memory copies. See SECURITY-REVIEW.md and SIGNING-REQUIREMENTS.md.
+See RELEASE-READINESS.md and draft PR #2 for the results linked to the candidate revision. Functional tests do not certify cryptography, measure all entropy properties, or prove absence of memory copies. See SECURITY-REVIEW.md and SIGNING-REQUIREMENTS.md.

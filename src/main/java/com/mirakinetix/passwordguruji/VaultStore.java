@@ -74,28 +74,37 @@ final class VaultStore {
     }
     List<VaultEntry> load(char[] password) throws IOException, GeneralSecurityException {
         try(Guard ignored=guard()) {
-            byte[] file=readBounded(), plain=null, encrypted=null;
-            try {
-                ByteBuffer in=ByteBuffer.wrap(file);
-                byte[] magic=new byte[MAGIC.length]; in.get(magic);
-                if(!Arrays.equals(MAGIC,magic)) throw new IOException("This is not a Password Guruji vault.");
-                int version=in.getInt();
-                if(version!=VERSION&&version!=VERSION_2&&version!=VERSION_1) throw new IOException("This vault version is not supported.");
-                if(version!=VERSION_1&&file.length<60) throw new IOException("The vault is incomplete.");
-                int iterations=version==VERSION_1?ITERATIONS:in.getInt();
-                if(iterations<100_000||iterations>2_000_000) throw new IOException("Vault key settings are invalid.");
-                byte[] salt=new byte[SALT_LENGTH],nonce=new byte[NONCE_LENGTH]; in.get(salt).get(nonce);
-                encrypted=new byte[in.remaining()]; in.get(encrypted);
-                plain=crypt(Cipher.DECRYPT_MODE,password,salt,nonce,encrypted,version,iterations);
-                List<VaultEntry> result=version==VERSION_1?decodeV1(plain):decodeRecords(plain,version>=VERSION);
-                Set<String> ids=new HashSet<>();
-                for(VaultEntry entry:result) if(!ids.add(entry.id())) throw new IOException("Duplicate record identifier in vault.");
-                observedDigest=digest(file); return result;
-            } finally {
-                if(plain!=null) Arrays.fill(plain,(byte)0);
-                if(encrypted!=null) Arrays.fill(encrypted,(byte)0);
-                Arrays.fill(file,(byte)0);
-            }
+            return decodeSnapshot(password,true);
+        }
+    }
+
+    List<VaultEntry> readBackup(char[] password) throws IOException, GeneralSecurityException {
+        return decodeSnapshot(password,false);
+    }
+
+    private List<VaultEntry> decodeSnapshot(char[] password,boolean observe) throws IOException, GeneralSecurityException {
+        byte[] file=readBounded(), plain=null, encrypted=null;
+        try {
+            ByteBuffer in=ByteBuffer.wrap(file);
+            byte[] magic=new byte[MAGIC.length]; in.get(magic);
+            if(!Arrays.equals(MAGIC,magic)) throw new IOException("This is not a Password Guruji vault.");
+            int version=in.getInt();
+            if(version!=VERSION&&version!=VERSION_2&&version!=VERSION_1) throw new IOException("This vault version is not supported.");
+            if(version!=VERSION_1&&file.length<60) throw new IOException("The vault is incomplete.");
+            int iterations=version==VERSION_1?ITERATIONS:in.getInt();
+            if(iterations<100_000||iterations>2_000_000) throw new IOException("Vault key settings are invalid.");
+            byte[] salt=new byte[SALT_LENGTH],nonce=new byte[NONCE_LENGTH]; in.get(salt).get(nonce);
+            encrypted=new byte[in.remaining()]; in.get(encrypted);
+            plain=crypt(Cipher.DECRYPT_MODE,password,salt,nonce,encrypted,version,iterations);
+            List<VaultEntry> result=version==VERSION_1?decodeV1(plain):decodeRecords(plain,version>=VERSION);
+            Set<String> ids=new HashSet<>();
+            for(VaultEntry entry:result) if(!ids.add(entry.id())) throw new IOException("Duplicate record identifier in vault.");
+            if(observe) observedDigest=digest(file);
+            return result;
+        } finally {
+            if(plain!=null) Arrays.fill(plain,(byte)0);
+            if(encrypted!=null) Arrays.fill(encrypted,(byte)0);
+            Arrays.fill(file,(byte)0);
         }
     }
     void save(char[] password,List<VaultEntry> entries) throws IOException,GeneralSecurityException {
@@ -107,11 +116,15 @@ final class VaultStore {
         if(Files.exists(path,LinkOption.NOFOLLOW_LINKS)) {
             byte[] current=readBounded();
             try {
-                if(observedDigest==null||!MessageDigest.isEqual(observedDigest,digest(current)))
-                    throw new IOException("The vault changed in another instance. Your changes were not saved. Close without saving and reopen the latest vault.");
+                verifyObserved(current);
             } finally { Arrays.fill(current,(byte)0); }
         } else if(observedDigest!=null) throw new IOException("The vault was moved or removed. Refusing to overwrite its location.");
     }
+    private void verifyObserved(byte[] current) throws IOException, GeneralSecurityException {
+        if(observedDigest==null||!MessageDigest.isEqual(observedDigest,digest(current)))
+            throw new IOException("The vault changed in another instance. Reopen the latest vault and try again.");
+    }
+
     void checkDestination(Path destination) throws IOException {
         Path target=destination.toAbsolutePath().normalize();
         Path lock=path.resolveSibling(path.getFileName()+".lock");
@@ -122,8 +135,11 @@ final class VaultStore {
     void backupTo(Path destination) throws IOException,GeneralSecurityException {
         checkDestination(destination);
         try(Guard ignored=guard()) {
-            checkUnchanged(); byte[] data=readBounded();
-            try { SecureFiles.writeAtomic(destination,data,operations); }
+            byte[] data=readBounded();
+            try {
+                verifyObserved(data);
+                SecureFiles.writeNewAtomic(destination,data,operations);
+            }
             finally { Arrays.fill(data,(byte)0); }
         }
     }

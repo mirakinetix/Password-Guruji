@@ -92,6 +92,114 @@ class UiHardeningTest {
             assertEquals("external",other.load("synthetic-long-password".toCharArray()).getFirst().title());
         });
     }
+    @Test void importedMarkupDisplaysLiterallyWithoutInstallingAnHtmlView() throws Exception {
+        try (var listener = new java.net.ServerSocket(0,1,java.net.InetAddress.getByName("127.0.0.1"))) {
+            listener.setSoTimeout(400);
+            String markup = "<html><a href='http://127.0.0.1:" + listener.getLocalPort() + "/'>東京</a></html>";
+            Path csv = dir.resolve("markup.csv");
+            VaultCsv.exportFile(csv,List.of(VaultEntry.create(markup,"","","","",markup,markup,false,
+                    List.of(markup),Map.of(markup,"dummy"))));
+            VaultEntry imported = VaultCsv.importFile(csv).getFirst();
+            withApp(true,(app,frame)->{
+                unlock(app);
+                Method details = PasswordGurujiApp.class.getDeclaredMethod("showDetails",VaultEntry.class);
+                details.setAccessible(true);
+                details.invoke(app,imported);
+                var labels = DesktopTest.descendants((Container)DesktopTest.field(app,"detailPanel")).stream()
+                        .filter(JLabel.class::isInstance).map(JLabel.class::cast).toList();
+                assertTrue(labels.stream().anyMatch(label -> markup.equals(label.getText())));
+                assertTrue(labels.stream().anyMatch(label -> label.getText().contains("Tags: "+markup)));
+                for (JLabel label : labels) assertNull(label.getClientProperty(javax.swing.plaf.basic.BasicHTML.propertyKey));
+                JComboBox<?> combo = (JComboBox<?>)DesktopTest.field(app,"folderFilter");
+                @SuppressWarnings("unchecked")
+                ListCellRenderer<Object> renderer = (ListCellRenderer<Object>)combo.getRenderer();
+                JLabel folder = (JLabel)renderer.getListCellRendererComponent(new JList<>(),markup,0,false,false);
+                assertEquals(markup,folder.getText());
+                assertNull(folder.getClientProperty(javax.swing.plaf.basic.BasicHTML.propertyKey));
+            });
+            assertThrows(java.net.SocketTimeoutException.class,listener::accept);
+        }
+    }
+
+    @Test void cancelingBackupLeavesSourceBytesUnchanged() throws Exception {
+        withApp(true,(app,frame)->{
+            unlock(app);
+            VaultStore source = (VaultStore)DesktopTest.field(app,"store");
+            byte[] before = Files.readAllBytes(source.path());
+            boolean[] canceled = {false};
+            long deadline = System.nanoTime()+java.util.concurrent.TimeUnit.SECONDS.toNanos(10);
+            javax.swing.Timer driver = new javax.swing.Timer(50,event->{
+                for(Window window:frame.getOwnedWindows()) {
+                    if(!window.isShowing()) continue;
+                    for(Component component:DesktopTest.descendants(window)) {
+                        if(component instanceof JFileChooser chooser) {
+                            canceled[0]=true;
+                            chooser.cancelSelection();
+                            return;
+                        }
+                    }
+                    if(System.nanoTime()>deadline) window.dispose();
+                }
+            });
+            driver.start();
+            try { DesktopTest.invoke(app,"createBackup"); }
+            finally { driver.stop(); }
+            assertTrue(canceled[0]);
+            assertArrayEquals(before,Files.readAllBytes(source.path()));
+        });
+    }
+
+    @Test void keyboardCopiesClearOnTimeoutLockAndShutdownWithoutClearingOtherContent() throws Exception {
+        withApp(true,(app,frame)->{
+            unlock(app);
+            Clipboard clipboard = Toolkit.getDefaultToolkit().getSystemClipboard();
+            UiHardeningTest.set(app,"clipboardClearSeconds",1);
+            copyRevealedPassword(app);
+            assertEquals("dummy-a",clipboard.getData(DataFlavor.stringFlavor));
+            SecondaryLoop loop = Toolkit.getDefaultToolkit().getSystemEventQueue().createSecondaryLoop();
+            javax.swing.Timer timer = new javax.swing.Timer(1600,event->loop.exit());
+            timer.setRepeats(false);
+            timer.start();
+            try { assertTrue(loop.enter()); }
+            finally { timer.stop(); }
+            assertEquals("",clipboard.getData(DataFlavor.stringFlavor));
+
+            UiHardeningTest.set(app,"clipboardClearSeconds",30);
+            copyRevealedPassword(app);
+            DesktopTest.invoke(app,"lockVault");
+            assertEquals("",clipboard.getData(DataFlavor.stringFlavor));
+
+            unlock(app);
+            copyRevealedPassword(app);
+            clipboard.setContents(new StringSelection("dummy-a"),null);
+            DesktopTest.invoke(app,"lockVault");
+            assertEquals("dummy-a",clipboard.getData(DataFlavor.stringFlavor));
+
+            unlock(app);
+            copyRevealedPassword(app);
+            frame.dispatchEvent(new java.awt.event.WindowEvent(frame,java.awt.event.WindowEvent.WINDOW_CLOSING));
+            assertFalse(frame.isDisplayable());
+            assertEquals("",clipboard.getData(DataFlavor.stringFlavor));
+        });
+    }
+
+    private static void copyRevealedPassword(PasswordGurujiApp app) throws Exception {
+        JList<?> entries = (JList<?>)DesktopTest.field(app,"entryList");
+        entries.setSelectedIndex(0);
+        Container details = (Container)DesktopTest.field(app,"detailPanel");
+        for(Component component:DesktopTest.descendants(details))
+            if(component instanceof JToggleButton button && "Show".equals(button.getText())) button.doClick();
+        JTextField field = DesktopTest.descendants(details).stream().filter(JTextField.class::isInstance)
+                .map(JTextField.class::cast).filter(text -> "dummy-a".equals(text.getText())).findFirst().orElseThrow();
+        field.selectAll();
+        var stroke = KeyStroke.getKeyStroke(java.awt.event.KeyEvent.VK_C,Toolkit.getDefaultToolkit().getMenuShortcutKeyMaskEx());
+        Object binding = field.getInputMap().get(stroke);
+        assertNotNull(binding);
+        Action copy = field.getActionMap().get(binding);
+        assertNotNull(copy);
+        copy.actionPerformed(new java.awt.event.ActionEvent(field,java.awt.event.ActionEvent.ACTION_PERFORMED,binding.toString()));
+    }
+
     @Test void copyingIdenticalTextElsewhereDoesNotEraseIt() throws Exception {
         Clipboard clipboard=new Clipboard("same-text-owner-test");SecretClipboard owner=new SecretClipboard(clipboard);
         SwingUtilities.invokeAndWait(()->{owner.copy("identical dummy",1000);clipboard.setContents(new StringSelection("identical dummy"),null);owner.clear();});

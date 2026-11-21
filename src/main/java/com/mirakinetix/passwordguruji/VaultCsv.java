@@ -8,6 +8,9 @@ import java.util.*;
 final class VaultCsv {
     private static final List<String> HEADER = List.of("Name","Type","Username","Password","Website","Notes",
             "Folder","Favourite","Tags","CustomFields");
+    private static final int MAX_CSV_BYTES = 32 * 1024 * 1024;
+    private static final int MAX_CELL_CHARS = 8 * 1024 * 1024;
+    private static final int MAX_RECORDS = 100_000;
     private static final String MARKER="PGTEXT:";
     private static final List<String> V2_HEADER = List.of("Name [PGCSV2]","Type","Username","Password","Website","Notes","Folder","Favourite","Tags","CustomFields");
     private VaultCsv() {}
@@ -18,17 +21,17 @@ final class VaultCsv {
         if(Files.exists(path)) try(InputStream input=Files.newInputStream(path)) {
             if(Arrays.equals(input.readNBytes(8),new byte[]{'P','G','V','A','U','L','T',0})) throw new IOException("An encrypted vault cannot be replaced with plaintext CSV.");
         }
-        if(entries.size()>100_000) throw new IOException("Too many CSV records.");
+        if(entries.size()>MAX_RECORDS) throw new IOException("Too many CSV records.");
         WipingBytes bytes=new WipingBytes(); byte[] output=null;
         try {
-            BufferedWriter writer=new BufferedWriter(new OutputStreamWriter(bytes,StandardCharsets.UTF_8));
+            BufferedWriter writer=new BufferedWriter(new OutputStreamWriter(bytes,StandardCharsets.UTF_8.newEncoder()));
             writeRow(writer,V2_HEADER);
             for(VaultEntry entry:entries) {
                 String tags="tags-v2:"+entry.tags().size()+":"+entry.tags().stream().map(value -> Base64.getUrlEncoder().encodeToString(value.getBytes(StandardCharsets.UTF_8))).collect(java.util.stream.Collectors.joining("|"));
                 List<String> values=List.of(entry.title(),entry.category(),entry.username(),entry.password(),entry.url(),entry.notes(),entry.folder(),Boolean.toString(entry.favorite()),tags,encodeCustomFields(entry.customFields()));
                 writeRow(writer,values.stream().map(value -> MARKER+value).toList());
                 writer.flush();
-                if(bytes.size()>32*1024*1024) throw new IOException("The CSV export is too large.");
+                if(bytes.size()>MAX_CSV_BYTES) throw new IOException("The CSV export is too large.");
             }
             writer.flush();output=bytes.toByteArray();SecureFiles.writeAtomic(path,output,SecureFiles.SYSTEM);
         } finally { if(output!=null) Arrays.fill(output,(byte)0);bytes.wipe(); }
@@ -40,9 +43,9 @@ final class VaultCsv {
     static List<VaultEntry> importFile(Path path) throws IOException {
         List<List<String>> rows;
         byte[] data;
-        try(InputStream stream=Files.newInputStream(path)) { data=stream.readNBytes(32*1024*1024+1); }
+        try(InputStream stream=Files.newInputStream(path)) { data=stream.readNBytes(MAX_CSV_BYTES+1); }
         try {
-            if(data.length>32*1024*1024) throw new IOException("The CSV file is too large.");
+            if(data.length>MAX_CSV_BYTES) throw new IOException("The CSV file is too large.");
             try(Reader reader=new BufferedReader(new InputStreamReader(new ByteArrayInputStream(data),StandardCharsets.UTF_8.newDecoder().onMalformedInput(java.nio.charset.CodingErrorAction.REPORT)))) { rows=parse(reader); }
         } finally { Arrays.fill(data,(byte)0); }
         if (rows.isEmpty()) return List.of();
@@ -135,6 +138,8 @@ final class VaultCsv {
 
     private static void writeRow(Writer out, List<String> fields) throws IOException {
         for (int i=0; i<fields.size(); i++) {
+            if(fields.get(i).length()>MAX_CELL_CHARS)
+                throw new IOException("A CSV cell exceeds the size limit. Use an encrypted backup for this vault.");
             if (i > 0) out.write(',');
             out.write('"');
             out.write(fields.get(i).replace("\"", "\"\""));
@@ -147,33 +152,62 @@ final class VaultCsv {
         List<List<String>> rows = new ArrayList<>();
         List<String> row = new ArrayList<>();
         StringBuilder field = new StringBuilder();
-        boolean quoted = false, closedQuote = false;
+        boolean quoted = false;
+        boolean closedQuote = false;
         int ch;
         while ((ch = reader.read()) != -1) {
             char c = (char)ch;
-            if(field.length()>2_000_000 || row.size()>HEADER.size() || rows.size()>100_000) throw new IOException("CSV limits exceeded.");
-            if(closedQuote && c!=',' && c!='\r' && c!='\n') throw new IOException("Unexpected text after a quoted CSV field.");
             if (quoted) {
-                if (c == '"') {
+                if (c != '"') appendCellCharacter(field,c);
+                else {
                     reader.mark(1);
                     int next = reader.read();
-                    if (next == '"') field.append('"');
-                    else { quoted = false; closedQuote=true; if (next != -1) reader.reset(); }
-                } else if(c=='"') throw new IOException("Unexpected quote in CSV field.");
-            else field.append(c);
-            } else if (c == '"' && field.length() == 0) quoted = true;
-            else if (c == ',') { row.add(field.toString()); field.setLength(0); closedQuote=false; }
-            else if (c == '\n') {
-                if (field.length() > 0 && field.charAt(field.length()-1) == '\r') field.setLength(field.length()-1);
-                row.add(field.toString()); field.setLength(0);
-                if (!(row.size() == 1 && row.get(0).isEmpty())) rows.add(List.copyOf(row));
-                row.clear();closedQuote=false;
-            } else if(c=='"') throw new IOException("Unexpected quote in CSV field.");
-            else field.append(c);
+                    if (next == '"') appendCellCharacter(field,'"');
+                    else {
+                        quoted = false;
+                        closedQuote = true;
+                        if (next != -1) reader.reset();
+                    }
+                }
+            } else if (c == ',' || c == '\r' || c == '\n') {
+                addCell(row,field);
+                closedQuote = false;
+                if (c != ',') {
+                    addRow(rows,row);
+                    if (c == '\r') {
+                        reader.mark(1);
+                        if (reader.read() != '\n') reader.reset();
+                    }
+                }
+            } else if (closedQuote) throw new IOException("Unexpected text after a quoted CSV field.");
+            else if (c == '"' && field.isEmpty()) quoted = true;
+            else if (c == '"') throw new IOException("Unexpected quote in CSV field.");
+            else appendCellCharacter(field,c);
         }
-        if(field.length()>2_000_000 || row.size()>HEADER.size() || rows.size()>100_000) throw new IOException("CSV limits exceeded.");
         if (quoted) throw new IOException("CSV has an unclosed quoted field.");
-        if (!row.isEmpty() || field.length() > 0) { row.add(field.toString()); rows.add(List.copyOf(row)); }
+        if (!row.isEmpty() || !field.isEmpty() || closedQuote) {
+            addCell(row,field);
+            addRow(rows,row);
+        }
         return rows;
+    }
+
+    private static void appendCellCharacter(StringBuilder field,char value) throws IOException {
+        if(field.length()>=MAX_CELL_CHARS) throw new IOException("A CSV cell exceeds the size limit.");
+        field.append(value);
+    }
+
+    private static void addCell(List<String> row,StringBuilder field) throws IOException {
+        if(row.size()>=HEADER.size()) throw new IOException("Too many columns in CSV row.");
+        row.add(field.toString());
+        field.setLength(0);
+    }
+
+    private static void addRow(List<List<String>> rows,List<String> row) throws IOException {
+        if (!(row.size() == 1 && row.getFirst().isEmpty())) {
+            if(rows.size()>=MAX_RECORDS+1) throw new IOException("Too many CSV records.");
+            rows.add(List.copyOf(row));
+        }
+        row.clear();
     }
 }

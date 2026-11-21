@@ -6,7 +6,7 @@ import javax.swing.border.EmptyBorder;
 import javax.swing.event.DocumentEvent;
 import javax.swing.event.DocumentListener;
 import java.awt.*;
-import java.awt.datatransfer.StringSelection;
+import java.awt.datatransfer.Clipboard;
 import java.awt.event.*;
 import java.io.File;
 import java.io.IOException;
@@ -384,8 +384,10 @@ public final class PasswordGurujiApp {
         JPanel controls=new JPanel(new BorderLayout(6,0)); controls.setOpaque(false); controls.add(shown,BorderLayout.CENTER);
         if(secret){
             JToggleButton reveal=subtleToggle("Show"); controls.add(reveal,BorderLayout.WEST);
+            manageFieldCopy(shown,reveal::isSelected);
             reveal.addActionListener(e->{shown.setText(reveal.isSelected()?safe(value):"••••••••••••");reveal.setText(reveal.isSelected()?"Hide":"Show");});
         }
+        if(!secret) manageFieldCopy(shown,() -> true);
         JButton copy=subtleButton("Copy"); copy.addActionListener(e->copyToClipboard(safe(value))); controls.add(copy,BorderLayout.EAST);
         box.add(controls,BorderLayout.CENTER); c.gridy=row; c.insets=new Insets(0,0,2,0); panel.add(box,c);
     }
@@ -530,8 +532,9 @@ public final class PasswordGurujiApp {
         JList<VaultEntry.Revision> choices=new JList<>(revisions.toArray(VaultEntry.Revision[]::new));
         choices.setSelectionMode(ListSelectionModel.SINGLE_SELECTION);
         choices.setCellRenderer(new DefaultListCellRenderer(){
+            { putClientProperty("html.disable",Boolean.TRUE); }
             @Override public Component getListCellRendererComponent(JList<?> list,Object value,int index,boolean selected,boolean focus){
-                JLabel item=(JLabel)super.getListCellRendererComponent(list,value,index,selected,focus);
+                JLabel item=(JLabel)super.getListCellRendererComponent(list,"",index,selected,focus);
                 VaultEntry.Revision revision=(VaultEntry.Revision)value;
                 item.setText(DateFormat.getDateTimeInstance(DateFormat.MEDIUM,DateFormat.SHORT).format(revision.timestamp())+
                         "  ·  "+(revision.password().isBlank()?"No password snapshot":"Password snapshot saved"));
@@ -560,7 +563,13 @@ public final class PasswordGurujiApp {
         JTextField excludedCharacters=new JTextField(16);styleField(excludedCharacters);
         JSpinner wordCount=new JSpinner(new SpinnerNumberModel(8,6,12,1));
         JTextField separator=new JTextField("-",5);
-        JPasswordField output=new JPasswordField(30);styleField(output);
+        JPasswordField output=new JPasswordField(30) {
+            @Override public void copy() {
+                if(!echoCharIsSet()) copyToClipboard(getSelectedText());
+            }
+        };
+        styleField(output);
+        bindCopyShortcut(output);
         JLabel estimate=label("",11,MUTED,Font.PLAIN);
         JPanel options=new JPanel(new GridLayout(0,2,7,5));options.setBackground(PANEL);
         options.add(label("Password length",12,MUTED,Font.PLAIN));options.add(length);
@@ -646,14 +655,11 @@ public final class PasswordGurujiApp {
         if(chooser.showSaveDialog(frame)!=JFileChooser.APPROVE_OPTION)return;
         Path destination=chooser.getSelectedFile().toPath().toAbsolutePath().normalize();
         if(destination.equals(store.path())){warn("Choose a different file for the backup.");return;}
-        if(!saveVault())return;
         try{
-            if(Files.exists(destination)){
-                int replace=JOptionPane.showConfirmDialog(frame,"Replace the selected backup file?","Replace backup",JOptionPane.YES_NO_OPTION);
-                if(replace!=JOptionPane.YES_OPTION)return;
-            }
             vaultTask(() -> { store.backupTo(destination); return null; });
             JOptionPane.showMessageDialog(frame,"Encrypted backup saved. Store it somewhere separate from this computer.");
+        }catch(FileAlreadyExistsException exists){
+            warn("Choose a new filename. Backups never overwrite existing files.");
         }catch(IOException|GeneralSecurityException ex){showError("Could not create the backup",ex);}
     }
 
@@ -663,17 +669,18 @@ public final class PasswordGurujiApp {
         if(chooser.showOpenDialog(frame)!=JFileChooser.APPROVE_OPTION)return;
         Path backup=chooser.getSelectedFile().toPath();
         if(backup.toAbsolutePath().normalize().equals(store.path())){warn("The selected file is already the active vault.");return;}
+        VaultStore backupStore=new VaultStore(backup);
         char[] backupPassword=masterPassword.clone();
         List<VaultEntry> restored;
         try{
-            restored=loadVault(new VaultStore(backup),backupPassword);
+            restored=readBackup(backupStore,backupPassword);
         }catch(AEADBadTagException wrongKey){
             wipe(backupPassword);
             JPasswordField input=new JPasswordField(24);
             int answer=JOptionPane.showConfirmDialog(frame,input,"Enter the backup's master password",JOptionPane.OK_CANCEL_OPTION);
-            if(answer!=JOptionPane.OK_OPTION)return;
+            if(answer!=JOptionPane.OK_OPTION){input.setText("");return;}
             backupPassword=input.getPassword();input.setText("");
-            try{restored=loadVault(new VaultStore(backup),backupPassword);}
+            try{restored=readBackup(backupStore,backupPassword);}
             catch(Exception ex){wipe(backupPassword);showError("Could not unlock that backup",ex);return;}
         }catch(Exception ex){wipe(backupPassword);showError("Could not read that backup",ex);return;}
         finally{if(backupPassword!=null)wipe(backupPassword);}
@@ -797,6 +804,9 @@ public final class PasswordGurujiApp {
     private List<VaultEntry> loadVault(VaultStore source,char[] password) throws IOException,GeneralSecurityException {
         return vaultTask(() -> source.load(password));
     }
+    private List<VaultEntry> readBackup(VaultStore backup,char[] password) throws IOException,GeneralSecurityException {
+        return vaultTask(() -> backup.readBackup(password));
+    }
     private void saveRecords(char[] password) throws IOException,GeneralSecurityException {
         List<VaultEntry> snapshot=List.copyOf(entries);
         vaultTask(() -> { store.save(password,snapshot);return null; });
@@ -833,6 +843,22 @@ public final class PasswordGurujiApp {
             entries.clear();entries.addAll(persistedEntries);refreshFolders();refreshList();
             showError("The attempted change was not saved; the previous records are restored",ex);return false;
         }
+    }
+
+    private static void bindCopyShortcut(JTextField field) {
+        int modifiers=Toolkit.getDefaultToolkit().getMenuShortcutKeyMaskEx();
+        field.getInputMap().put(KeyStroke.getKeyStroke(KeyEvent.VK_C,modifiers),
+                javax.swing.text.DefaultEditorKit.copyAction);
+    }
+
+    private void manageFieldCopy(JTextField field,java.util.function.BooleanSupplier canCopy) {
+        bindCopyShortcut(field);
+        field.setTransferHandler(new TransferHandler() {
+            @Override public int getSourceActions(JComponent component) { return canCopy.getAsBoolean() ? COPY : NONE; }
+            @Override public void exportToClipboard(JComponent component,Clipboard clipboard,int action) {
+                if(action==COPY && canCopy.getAsBoolean()) copyToClipboard(field.getSelectedText());
+            }
+        });
     }
 
     private void copyToClipboard(String value) {
@@ -905,7 +931,7 @@ public final class PasswordGurujiApp {
     }
 
     private JLabel label(String text,int size,Color color,int style){
-        JLabel value=new JLabel(text);value.setFont(new Font(Font.SANS_SERIF,style,size));value.setForeground(color);return value;
+        JLabel value=new JLabel();value.putClientProperty("html.disable",Boolean.TRUE);value.setText(text);value.setFont(new Font(Font.SANS_SERIF,style,size));value.setForeground(color);return value;
     }
     private JLabel productHeading(int fontSize) {
         JLabel heading = label("Password Guruji", fontSize, TEXT, Font.BOLD);
@@ -955,6 +981,7 @@ public final class PasswordGurujiApp {
         combo.setForeground(TEXT); combo.setBackground(PANEL_2);
         combo.setBorder(BorderFactory.createLineBorder(BORDER));
         combo.setRenderer(new DefaultListCellRenderer() {
+            { putClientProperty("html.disable",Boolean.TRUE); }
             @Override public Component getListCellRendererComponent(JList<?> list, Object value, int index,
                                                                      boolean selected, boolean focus) {
                 super.getListCellRendererComponent(list, value, index, selected, focus);
@@ -973,7 +1000,7 @@ public final class PasswordGurujiApp {
 
     private final class EntryRenderer extends DefaultListCellRenderer {
         @Override public Component getListCellRendererComponent(JList<?> list,Object value,int index,boolean selected,boolean focus){
-            JLabel item=(JLabel)super.getListCellRendererComponent(list,value,index,selected,focus);
+            JLabel item=(JLabel)super.getListCellRendererComponent(list,"",index,selected,focus);
             VaultEntry entry=(VaultEntry)value;
             String marker=entry.archived()?"[Archived] ":entry.favorite()?"★ ":"";
             item.setText("<html><b>"+marker+escape(entry.title())+"</b><br><span style='color:#97a5bb'>"+

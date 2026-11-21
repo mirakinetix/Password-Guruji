@@ -75,20 +75,71 @@ class FinalSafetyTest {
         Files.writeString(target, "untouched synthetic sentinel");
         Path link = Files.createLink(directory.resolve("linked.csv"), target);
         VaultStore store = vault("source.pgv");
+        assertThrows(IOException.class, () -> store.backupTo(link));
+        assertTrue(Files.isSameFile(target, link));
         if (Files.getFileStore(directory).supportsFileAttributeView("unix")) {
-            assertThrows(IOException.class, () -> store.backupTo(link));
             assertThrows(IOException.class, () -> VaultCsv.exportFile(link, List.of()));
             assertTrue(Files.isSameFile(target, link));
         } else {
-            store.backupTo(link);
+            VaultCsv.exportFile(link, List.of());
             assertFalse(Files.isSameFile(target, link));
-            assertArrayEquals(Files.readAllBytes(store.path()), Files.readAllBytes(link));
-            Path csvLink = Files.createLink(directory.resolve("export.csv"), target);
-            VaultCsv.exportFile(csvLink, List.of());
-            assertFalse(Files.isSameFile(target, csvLink));
-            assertTrue(VaultCsv.importFile(csvLink).isEmpty());
+            assertTrue(VaultCsv.importFile(link).isEmpty());
         }
         assertEquals("untouched synthetic sentinel", Files.readString(target));
+    }
+
+    @Test void backupPreservesSourceAndRefusesToReplaceAnotherVault() throws Exception {
+        VaultStore source = vault("source.pgv");
+        VaultStore other = vault("other.pgv");
+        byte[] sourceBytes = Files.readAllBytes(source.path());
+        byte[] otherBytes = Files.readAllBytes(other.path());
+        assertThrows(FileAlreadyExistsException.class, () -> source.backupTo(other.path()));
+        assertArrayEquals(otherBytes, Files.readAllBytes(other.path()));
+        Path newBackup = directory.resolve("new.pgv");
+        source.backupTo(newBackup);
+        assertArrayEquals(sourceBytes, Files.readAllBytes(newBackup));
+        assertArrayEquals(sourceBytes, Files.readAllBytes(source.path()));
+    }
+
+    @Test void backupDoesNotReplaceAFileThatAppearsDuringPublication() throws Exception {
+        Path sourcePath = vault("source.pgv").path();
+        Path destination = directory.resolve("another.pgv");
+        byte[] otherBytes = Files.readAllBytes(vault("reserve.pgv").path());
+        SecureFiles.Operations racingWriter = new SecureFiles.Operations() {
+            public void write(Path temporary, byte[] content) throws IOException {
+                SecureFiles.SYSTEM.write(temporary,content);
+                Files.write(destination,otherBytes,StandardOpenOption.CREATE_NEW);
+            }
+            public void replace(Path temporary, Path target) {
+                fail("Backups must never use replacement.");
+            }
+        };
+        VaultStore source = new VaultStore(sourcePath,racingWriter);
+        source.load(password);
+        assertThrows(FileAlreadyExistsException.class, () -> source.backupTo(destination));
+        assertArrayEquals(otherBytes, Files.readAllBytes(destination));
+    }
+
+    @Test void recoveryAuthenticatesReadOnlyBackupWithoutCreatingSidecar() throws Exception {
+        VaultStore source = vault("source.pgv");
+        Path media = Files.createDirectory(directory.resolve("media"));
+        Path file = media.resolve("backup.pgv");
+        source.backupTo(file);
+        byte[] original = Files.readAllBytes(file);
+        var posix = Files.getFileAttributeView(media,java.nio.file.attribute.PosixFileAttributeView.class);
+        var dos = Files.getFileAttributeView(file,java.nio.file.attribute.DosFileAttributeView.class);
+        if (posix != null) Files.setPosixFilePermissions(media,java.nio.file.attribute.PosixFilePermissions.fromString("r-x------"));
+        else dos.setReadOnly(true);
+        try {
+            VaultStore recovery = new VaultStore(file);
+            assertThrows(javax.crypto.AEADBadTagException.class, () -> recovery.readBackup("wrong".toCharArray()));
+            assertTrue(recovery.readBackup(password).isEmpty());
+            assertArrayEquals(original,Files.readAllBytes(file));
+            assertFalse(Files.exists(media.resolve("backup.pgv.lock")));
+        } finally {
+            if (posix != null) Files.setPosixFilePermissions(media,java.nio.file.attribute.PosixFilePermissions.fromString("rwx------"));
+            else dos.setReadOnly(false);
+        }
     }
 
     @Tag("desktop")

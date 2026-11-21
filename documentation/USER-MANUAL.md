@@ -90,7 +90,7 @@ To change a record, select it and choose **Edit**; double-clicking a row also op
 
 Select a record to view it. Passwords, usernames, and custom-field values are masked by default. Choose **Show** to reveal a masked value, then **Hide** to mask it again. Choose **Copy** to copy a field. Website and notes are displayed as ordinary text and also have a Copy button.
 
-Copied secrets are cleared from the clipboard after the configured timer when the clipboard still contains the copied value. Clipboard managers or other applications may retain their own copies, so do not copy secrets on a shared computer.
+The Copy button and keyboard copy from displayed record values use the same clipboard protection. The app clears its clipboard item on timeout, vault lock, and normal exit. A later copy by another app is left in place, even if the text is identical. Clipboard history, sync, and third-party managers may retain their own copies.
 
 ## 6. Generate a password or passphrase
 
@@ -148,7 +148,7 @@ Choose **Backup / restore**.
 2. Select a destination different from the active vault file.
 3. Store the backup somewhere separate from the computer, such as protected removable storage.
 
-The backup remains encrypted and uses the vault's master password at the time of backup. Changing the active vault's password does not change older backups. A backup is sensitive; protect both the file and the password. The app rejects the active vault, its lock file, and file aliases as backup destinations. If the chosen storage cannot enforce private permissions and atomic replacement, choose supported private local storage first.
+The backup remains encrypted and uses the vault's master password at the time of backup. Changing the active vault's password does not change older backups. A backup is sensitive; protect both the file and the password. Choose a new filename. A backup copies the saved encrypted vault without changing the original and refuses to replace any existing file. The destination filesystem must support private permissions and atomic creation by hard link. If removable media does not support these, create the backup in a private local folder and copy the encrypted file to the media.
 
 ### Restore an encrypted backup
 
@@ -156,7 +156,7 @@ The backup remains encrypted and uses the vault's master password at the time of
 2. If needed, enter the backup's master password.
 3. Review the record count and confirm replacement.
 
-Restoring replaces the active vault contents. The restored records are saved using the current vault's master password. Create a backup of the current vault before restoring if you need to preserve it. For recovery testing, work with copies in separate locations first; never overwrite the only original while investigating a failed unlock or damaged file. File corruption and a lost master password have no automatic recovery service.
+The backup can be read from read-only storage. The app authenticates it without creating a lock beside it. Restoring replaces the active vault contents only after confirmation. The restored records are saved using the current vault's master password. Create a backup of the current vault before restoring if you need to preserve it. For recovery testing, work with copies in separate locations first; never overwrite the only original while investigating a failed unlock or damaged file. File corruption and a lost master password have no automatic recovery service.
 
 ## 11. Import and export CSV
 
@@ -165,7 +165,7 @@ Choose **Import / export**. The app imports Password Guruji CSV exports; it does
 - **Import Guruji CSV** asks you to confirm, choose a file, then confirm how many records to add. Imported records are added to the current vault.
 - **Export plaintext CSV** asks for a separate warning confirmation, then lets you choose a destination. The CSV contains readable passwords and notes and is not encrypted.
 
-New exports use the Password Guruji CSV v2 header `Name [PGCSV2]`. Every data cell starts with the literal marker `PGTEXT:` so formula-like values remain text when exported. The importer removes that marker and restores the original values; do not remove markers or change the header manually. Tag and custom-field encodings are for lossless app import, not encryption. Earlier Password Guruji CSV headers are also accepted, but old exports do not have these formula protections. The exporter requires a `.csv` destination and refuses to replace an encrypted vault or the active lock file.
+New exports use the Password Guruji CSV v2 header `Name [PGCSV2]`. Every data cell starts with the literal marker `PGTEXT:` so formula-like values remain text when exported. The importer removes that marker and restores the original values; do not remove markers or change the header manually. Tag and custom-field encodings are for lossless app import, not encryption. Earlier Password Guruji CSV headers are also accepted, but old exports do not have these formula protections. The importer and exporter share a 32 MiB file limit and an 8 Mi UTF-16 code-unit cell limit. Larger exports fail before replacing a destination. The exporter requires a `.csv` destination and refuses to replace an encrypted vault or the active lock file.
 
 CSV is a transfer format, not a complete vault backup: imports receive new record identities and do not restore record history or application settings. Use an encrypted backup when those vault records and histories must be preserved. Application settings remain separate from vault files.
 
