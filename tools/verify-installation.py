@@ -28,6 +28,24 @@ else:
     executable = pathlib.Path(os.environ['LOCALAPPDATA'])/'Password Guruji'/'Password Guruji.exe'
     installed = 'MSI installed; EXE generated but setup wizard not exercised'
 if not executable.is_file(): raise RuntimeError(f'Installed launcher missing: {executable}')
+if system == 'Darwin':
+    app = executable.parents[1]
+    runtime = app/'runtime/Contents/Home/bin/java'
+    jar = app/'app/password-guruji-0.1.0.jar'
+elif system == 'Linux':
+    app = executable.parents[1]/'lib'
+    runtime = app/'runtime/bin/java'
+    jar = app/'app/password-guruji-0.1.0.jar'
+else:
+    app = executable.parent
+    runtime = app/'runtime/bin/java.exe'
+    jar = app/'app/password-guruji-0.1.0.jar'
+probe = out/'probe-classes'
+probe.mkdir()
+javac = pathlib.Path(os.environ['JAVA_HOME'])/'bin'/('javac.exe' if system == 'Windows' else 'javac')
+run(javac,'--release','25','-encoding','UTF-8','-cp',jar,'-d',probe,root/'tools/PackagingProbe.java')
+with (out/'runtime-probe.log').open('w',encoding='utf-8') as log:
+    subprocess.run([str(runtime),'-cp',str(jar)+os.pathsep+str(probe),'com.mirakinetix.passwordguruji.PackagingProbe'],check=True,stdout=log,stderr=subprocess.STDOUT,timeout=90)
 with tempfile.TemporaryDirectory(prefix='password-guruji-ci-') as temp:
     # Always pass a disposable vault; never open an existing default vault.
     with (out/'launcher.log').open('w',encoding='utf-8') as log:
@@ -40,5 +58,6 @@ with tempfile.TemporaryDirectory(prefix='password-guruji-ci-') as temp:
             try: process.wait(timeout=15)
             except subprocess.TimeoutExpired: process.kill(); process.wait(timeout=5)
 (out/'installation-verification.json').write_text(json.dumps({'os':system,'installation':installed,
+    'installed_runtime_functional_checks':7,
     'installed_launcher':str(executable),'startup':'process remained alive for 8 seconds; visual rendering not asserted',
     'shutdown':'terminated by harness; graceful window shutdown tested separately by DesktopTest'},indent=2),encoding='utf-8')

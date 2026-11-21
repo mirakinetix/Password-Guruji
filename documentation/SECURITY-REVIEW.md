@@ -22,6 +22,7 @@ Master password arrays and derived key arrays are cleared on relevant paths; dec
 | Low | CSV could export an empty custom-field value but rejected that value on import. | Fixed and covered by Unicode/quotes/newline/empty-field round trip. |
 | Medium | Installers are unsigned; Mac notarization absent. | Expected candidate limitation; Gatekeeper/SmartScreen acceptance unverified. No protection bypasses recommended. |
 | Medium | Password/crypto work occurs on Swing's event thread and can temporarily freeze the UI. Resource limits do not prevent all large-input memory pressure. | Stress/performance testing and background-worker design remain. |
+| Medium/High build-tool risk | The original Maven plugin graph contained advisory matches for BeanUtils, Commons IO/Lang, Plexus Utils, Aircompressor and Snappy. | Updated stable Maven plugins; explicitly selected fixed BeanUtils 1.11.0 and Plexus Utils 3.6.1 where the updated plugins still inherited affected versions. The expanded local scan of 91 package versions returned zero matches. These libraries are build tools, not application runtime dependencies. |
 
 No critical cryptographic break was demonstrated by this limited assessment. This is not evidence that none exists.
 
@@ -33,7 +34,9 @@ Source inspection found no application logging of master passwords or record con
 
 ## Dependency review
 
-`tools/check-dependencies.py` resolves Maven artifacts and queries OSV using public Maven package names and versions only. Advisory matches or service failures fail the security check. The timestamped JSON report is uploaded to the security workflow. This scope includes resolved application/test dependencies and explicitly declared Maven plugins, but excludes transitive build-plugin dependencies, JDK security advisories, operating-system packages, WiX and other packaging tools. The application has no external runtime Java libraries.
+`tools/check-dependencies.py` queries OSV using public Maven package names and versions only. Advisory matches, incomplete plugin resolution, or service failures fail the security check. The timestamped JSON report and resolved inventories are uploaded to the security workflow. This scope includes resolved application/test dependencies, explicitly declared Maven plugins, and their resolved transitive dependencies. It excludes Maven core, undeclared lifecycle plugins, dynamically selected test-provider components, JDK security advisories, operating-system packages, WiX and other packaging tools. The application has no external runtime Java libraries.
+
+Advisories addressed include GHSA-wxr5-93ph-8wr9, GHSA-78wr-2p64-hpwj, GHSA-vx9q-rhv9-3jvg, GHSA-j288-q9x7-2f5v, GHSA-6fmv-xxpf-w3cw and GHSA-8wh2-6qhj-h7j9. A clean advisory lookup is time-bound and does not prove the code free of vulnerabilities.
 
 Actions are pinned to commit hashes, token permissions are read-only, and no secrets are passed to PR code. Standard public hosted runners are used; artifacts/cache have finite retention. Do not add paid/larger runners without approval. Signing keys and deployment credentials are intentionally absent.
 

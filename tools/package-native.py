@@ -23,7 +23,8 @@ system = platform.system()
 common = [str(jpackage), '--name', 'Password Guruji', '--app-version', '1.0.0', '--vendor', 'Mirakinetix',
           '--description', 'Unsigned beta candidate - synthetic credentials only']
 image_args = common + ['--type', 'app-image', '--input', str(INPUT), '--main-jar', 'password-guruji-0.1.0.jar',
-    '--main-class', 'com.mirakinetix.passwordguruji.PasswordGurujiApp', '--dest', str(OUT / 'image')]
+    '--main-class', 'com.mirakinetix.passwordguruji.PasswordGurujiApp', '--dest', str(OUT / 'image'),
+    '--jlink-options', '--strip-debug --no-man-pages --no-header-files']
 if system == 'Windows':
     image_args += ['--icon', str(ROOT / 'documentation/brand-assets/password-guruji/password-guruji.ico')]
 elif system == 'Linux':

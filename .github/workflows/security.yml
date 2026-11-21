@@ -17,7 +17,8 @@ jobs:
           distribution: temurin
           java-version: '25'
           cache: maven
-      - run: mvn -B org.apache.maven.plugins:maven-dependency-plugin:3.8.1:list -DoutputFile=target/dependencies.txt
+      - run: mvn -U -B dependency:list -DoutputFile=target/dependencies.txt
+      - run: mvn -U -B dependency:resolve-plugins -DincludeArtifactIds=maven-resources-plugin,maven-compiler-plugin,maven-surefire-plugin,maven-jar-plugin,maven-dependency-plugin -DoutputFile=target/plugin-dependencies.txt
       - run: python tools/check-dependencies.py
       - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
         if: always()
@@ -26,5 +27,6 @@ jobs:
           path: |
             target/dependency-security.json
             target/dependencies.txt
+            target/plugin-dependencies.txt
           retention-days: 7
           if-no-files-found: error

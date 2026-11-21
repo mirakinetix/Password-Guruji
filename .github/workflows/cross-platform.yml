@@ -49,10 +49,10 @@ jobs:
           $wixBin | Out-File -FilePath $env:GITHUB_PATH -Append
       - name: Test with virtual display on Linux
         if: runner.os == 'Linux'
-        run: xvfb-run -a mvn -B -Pdesktop verify
+        run: xvfb-run -a mvn -U -B -Pdesktop verify
       - name: Test Windows and macOS desktop
         if: runner.os != 'Linux'
-        run: mvn -B -Pdesktop verify
+        run: mvn -U -B -Pdesktop verify
       - name: Build native installers
         run: python tools/package-native.py
       - name: Verify Linux installation

@@ -21,6 +21,8 @@ Open the successful **Cross-platform beta candidate** run linked from the draft 
 
 Consult RELEASE-READINESS.md for actual results rather than treating this table as a success claim. Windows runners use Windows Server, not Windows 11. The local Windows 11 desktop test supplies separate evidence. No Fedora/RHEL installation, Wayland desktop, physical Mac, or consumer Gatekeeper test is implied.
 
+Installation verification also runs seven functional checks against the installed JAR and its bundled runtime: vault creation, encrypted record round trip, wrong-password rejection, password generation, bundled passphrase word list, TOTP vector, and tamper rejection. The native GUI launcher is checked for early process exit; visual rendering and installer wizard interaction remain manual tests.
+
 Native package version **1.0.0** is a packaging build number required by Apple's positive-major-version rule. The application remains **0.1.0, beta candidate**, not a stable 1.0 release. The artifact metadata records both versions.
 
 ## Install on Windows
