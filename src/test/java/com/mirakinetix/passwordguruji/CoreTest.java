@@ -119,4 +119,13 @@ class CoreTest {
         assertEquals(10,e.history().size());
         assertEquals("dummy-18",e.restoreRevision(e.history().getLast()).password());
     }
+    @Test void platformPathsRespectNativeLocationsAndLegacyVaults() throws Exception {
+        assertEquals(dir.resolve("Library/Application Support/Mirakinetix/PasswordGuruji/vault.pgv"), VaultStore.defaultPath("Mac OS X",dir,Map.of()));
+        assertEquals(dir.resolve("AppData/Local/Mirakinetix/PasswordGuruji/vault.pgv"), VaultStore.defaultPath("Windows 11",dir,Map.of()));
+        Path xdg=dir.resolve("xdg");
+        assertEquals(xdg.resolve("Mirakinetix/PasswordGuruji/vault.pgv"), VaultStore.defaultPath("Linux",dir,Map.of("XDG_DATA_HOME",xdg.toString())));
+        Path legacy=dir.resolve(".local/share/Mirakinetix/PasswordGuruji/vault.pgv");
+        Files.createDirectories(legacy.getParent()); Files.write(legacy,new byte[]{1});
+        assertEquals(legacy,VaultStore.defaultPath("Mac OS X",dir,Map.of()));
+    }
 }

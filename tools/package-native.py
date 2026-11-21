@@ -7,6 +7,14 @@ OUT.mkdir(parents=True, exist_ok=True)
 INPUT = ROOT / 'target' / 'native-input'
 INPUT.mkdir(exist_ok=True)
 shutil.copy2(ROOT / 'target/password-guruji-0.1.0.jar', INPUT)
+guides = INPUT / 'documentation'
+guides.mkdir(exist_ok=True)
+for name in ['USER-MANUAL.md', 'CROSS-PLATFORM-BETA.md', 'SECURITY-REVIEW.md', 'THIRD-PARTY-NOTICES.md', 'SAMPLE-VAULT.md']:
+    shutil.copy2(ROOT / 'documentation' / name, guides)
+demo = INPUT / 'samples'
+demo.mkdir(exist_ok=True)
+for name in ['sample-vault.pgv', 'sample-backup.pgv', 'sample-data.csv', 'README.md']:
+    shutil.copy2(ROOT / 'samples' / name, demo)
 java_home = pathlib.Path(os.environ['JAVA_HOME'])
 jpackage = java_home / 'bin' / ('jpackage.exe' if os.name == 'nt' else 'jpackage')
 system = platform.system()

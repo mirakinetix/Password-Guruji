@@ -221,9 +221,20 @@ final class VaultStore {
     }
 
     static Path defaultPath() {
-        String local = System.getenv("LOCALAPPDATA");
-        Path base = local == null || local.isBlank()
-                ? Path.of(System.getProperty("user.home"), ".local", "share") : Path.of(local);
+        return defaultPath(System.getProperty("os.name"), Path.of(System.getProperty("user.home")), System.getenv());
+    }
+
+    static Path defaultPath(String osName, Path home, Map<String,String> environment) {
+        Path legacy = home.resolve(".local/share/Mirakinetix/PasswordGuruji/vault.pgv");
+        String os = osName.toLowerCase(Locale.ROOT);
+        // Keep pre-existing installations discoverable; never silently migrate vaults.
+        if (!os.startsWith("windows") && Files.isRegularFile(legacy)) return legacy;
+        String local = environment.get("LOCALAPPDATA");
+        String xdg = environment.get("XDG_DATA_HOME");
+        Path base;
+        if (os.startsWith("windows")) base = local == null || local.isBlank() ? home.resolve("AppData/Local") : Path.of(local);
+        else if (os.startsWith("mac")) base = home.resolve("Library/Application Support");
+        else base = xdg != null && !xdg.isBlank() && Path.of(xdg).isAbsolute() ? Path.of(xdg) : home.resolve(".local/share");
         return base.resolve("Mirakinetix").resolve("PasswordGuruji").resolve("vault.pgv");
     }
 }

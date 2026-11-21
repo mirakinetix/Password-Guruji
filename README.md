@@ -14,7 +14,7 @@ Password Guruji is an offline-first Java desktop password manager and encrypted 
 
 Ready-made fictional data is in [samples](samples/README.md): [sample vault](samples/sample-vault.pgv), [encrypted backup](samples/sample-backup.pgv), and [plaintext CSV](samples/sample-data.csv).
 
-With Java 17+ and Maven installed, run these commands from the repository folder:
+With Java 25 and Maven installed, run these commands from the repository folder:
 
 ```powershell
 mvn package
@@ -40,6 +40,9 @@ This build does not provide cloud sync, live breach monitoring, account recovery
 
 ## Documentation
 
+- [Cross-platform candidate installation and testing](documentation/CROSS-PLATFORM-BETA.md)
+- [Release readiness and verified evidence](documentation/RELEASE-READINESS.md)
+- [Focused security review](documentation/SECURITY-REVIEW.md)
 - [Sample vault and password](documentation/SAMPLE-VAULT.md)
 - [User Manual](documentation/USER-MANUAL.md)
 - [Installation Guide](documentation/INSTALLATION-GUIDE.md)
@@ -50,7 +53,7 @@ This build does not provide cloud sync, live breach monitoring, account recovery
 
 ## Build from source
 
-Requirements: Java 17 or later and Maven.
+Requirements: Java 25 and Maven 3.9 or later. The UI uses Swing, not JavaFX.
 
 - Build the runnable JAR: **mvn package**
 - Run it: **java -jar target/password-guruji-0.1.0.jar**

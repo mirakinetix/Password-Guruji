@@ -1,5 +1,7 @@
 # Password Guruji — Installation Guide
 
+For the new Windows/Linux/macOS native installer candidates, see [Cross-platform beta installation](CROSS-PLATFORM-BETA.md). The instructions below apply to the older portable Windows ZIP layout.
+
 This is a portable Windows manual-testing package, not a setup wizard. It contains the app and a Java runtime. It does not add Start menu entries or require Java to be installed separately.
 
 ## What is in the ZIP
