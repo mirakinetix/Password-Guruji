@@ -46,7 +46,7 @@ class CoreTest {
         byte[] first = Files.readAllBytes(s.path());
         assertFalse(new String(first, StandardCharsets.ISO_8859_1).contains(entry().password()));
         s.save(password, List.of(entry())); assertFalse(Arrays.equals(first, Files.readAllBytes(s.path())));
-        try (var files = Files.list(dir)) { assertEquals(1, files.count()); }
+        try (var files = Files.list(dir)) { assertEquals(Set.of("vault.pgv","vault.pgv.lock"), files.map(p -> p.getFileName().toString()).collect(java.util.stream.Collectors.toSet())); }
     }
     @ParameterizedTest @CsvSource({"12", "16", "32", "48", "70"})
     void authenticatesHeaderAndCiphertext(int offset) throws Exception {

@@ -5,6 +5,8 @@ import javax.swing.Timer;
 
 /** One owned clipboard item; accessed on the Swing event thread. */
 final class SecretClipboard implements ClipboardOwner {
+    private static final DataFlavor TOKEN = new DataFlavor("text/x-password-guruji-owner;class=java.lang.String", "Password Guruji ownership token");
+    private String token;
     private final Clipboard clipboard;
     private Transferable owned;
     private Timer timer;
@@ -12,10 +14,18 @@ final class SecretClipboard implements ClipboardOwner {
     SecretClipboard(Clipboard clipboard) { this.clipboard = clipboard; }
 
     void copy(String value, int delayMillis) {
-        Transferable next = new StringSelection(value);
+        String nextToken=java.util.UUID.randomUUID().toString();
+        StringSelection text=new StringSelection(value);
+        Transferable next=new Transferable() {
+            public DataFlavor[] getTransferDataFlavors() { DataFlavor[] original=text.getTransferDataFlavors(); DataFlavor[] flavors=java.util.Arrays.copyOf(original,original.length+1); flavors[original.length]=TOKEN; return flavors; }
+            public boolean isDataFlavorSupported(DataFlavor flavor) { return TOKEN.equals(flavor)||text.isDataFlavorSupported(flavor); }
+            public Object getTransferData(DataFlavor flavor) throws UnsupportedFlavorException,java.io.IOException {
+                return TOKEN.equals(flavor)?nextToken:text.getTransferData(flavor);
+            }
+        };
         clipboard.setContents(next, this);
         if (timer != null) timer.stop();
-        owned = next;
+        owned = next;token=nextToken;
         timer = new Timer(delayMillis, event -> clear());
         timer.setRepeats(false);
         timer.start();
@@ -27,7 +37,7 @@ final class SecretClipboard implements ClipboardOwner {
         owned = null;
         if (previous == null) return;
         try {
-            if (previous.getTransferData(DataFlavor.stringFlavor).equals(clipboard.getData(DataFlavor.stringFlavor)))
+            if (token != null && token.equals(clipboard.getData(TOKEN)))
                 clipboard.setContents(new StringSelection(""), null);
         } catch (IllegalStateException busy) {
             // Retry without blocking the event thread when another process holds the clipboard.

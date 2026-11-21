@@ -9,3 +9,5 @@ samples/working/
 .vscode/
 __pycache__/
 *.pyc
+*.pgv.lock
+*.pending
