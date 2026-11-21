@@ -12,7 +12,7 @@
   <build><plugins>
     <plugin><groupId>org.apache.maven.plugins</groupId><artifactId>maven-resources-plugin</artifactId><version>3.5.0</version>
       <!-- GHSA-6fmv-xxpf-w3cw: override the plugin's affected transitive version. -->
-      <dependencies><dependency><groupId>org.codehaus.plexus</groupId><artifactId>plexus-utils</artifactId><version>3.6.1</version></dependency></dependencies>
+      <dependencies><dependency><groupId>org.codehaus.plexus</groupId><artifactId>plexus-utils</artifactId><version>4.2.0</version></dependency></dependencies>
     </plugin>
     <plugin><groupId>org.apache.maven.plugins</groupId><artifactId>maven-dependency-plugin</artifactId><version>3.11.0</version>
       <!-- GHSA-wxr5-93ph-8wr9: build-tool dependency only, never bundled in the app. -->
