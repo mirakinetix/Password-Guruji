@@ -1,7 +1,7 @@
 # Password Guruji — User Manual
 
 **Brand:** Mirakinetix
-**Build:** 0.1.0 manual-testing build
+**Application:** 0.1.0 beta candidate. **Native package build:** 1.0.1 (not a stable 1.0 release).
 
 Password Guruji is an offline Java desktop password vault. The vault is stored on your device; the app has no account or cloud sync in this build.
 
@@ -26,11 +26,13 @@ Password Guruji is an offline Java desktop password vault. The vault is stored o
 
 ## 1. Before you begin
 
-This manual-testing build temporarily accepts a master password of at least six characters to make local testing easier. That threshold is not suitable for a public production release; the planned minimum is 15 characters after testing.
+Normal launches require at least **15 characters** for a new master password or a password change. Existing shorter passwords can still unlock older vaults; Settings lets you replace them with a longer password. Minimum length alone does not guarantee password strength.
+
+Only explicit demonstration mode, launched with `--sample-vault` and a disposable vault path, accepts six characters and shows a demonstration notice. The supplied fictional sample uses `123456`; this is not a default master password for normal vaults. See [Sample vault](SAMPLE-VAULT.md). Use synthetic data in both modes during this beta evaluation.
 
 The master password cannot be reset or recovered. If it is lost, the vault and its backups may become unusable. Keep encrypted backups and store the master password safely outside the vault.
 
-For package extraction and Windows security prompts, follow the separate Installation Guide. The Manual Test Guide describes the test scope and areas testers should leave out of scope.
+For native installation on Windows, macOS, or Linux and security prompts, follow the [Installation Guide](INSTALLATION-GUIDE.md). Hosted installer evidence is pending; the [Release readiness](RELEASE-READINESS.md) report records actual results. The Manual Test Guide describes test scope.
 
 ## 2. Create or open a vault
 
@@ -41,7 +43,9 @@ For package extraction and Windows security prompts, follow the separate Install
 3. Enter a master password and confirm it.
 4. Select **Create my vault**.
 
-The default Windows vault location is shown on the screen. Keep the vault somewhere you can back up, and avoid placing a test vault in a shared or synchronized folder.
+The selected vault location is shown on the screen. Default locations for each operating system are listed in the Installation Guide. Use a private local folder that supports private file permissions and atomic file replacement. Do not use a shared or cloud-synchronized working folder, a symbolic link, or a hard-linked sensitive file. Unsupported storage causes the save to fail; the app does not fall back to a non-atomic save.
+
+A sibling file such as `vault.pgv.lock` remains beside the vault to coordinate file access. Its presence after closing the app is normal. Do not delete it to bypass a warning or use it as an export/backup destination. Avoid editing the same vault in multiple app instances; stale changes are rejected rather than silently overwriting newer records.
 
 ### Open an existing vault
 
@@ -86,7 +90,7 @@ To change a record, select it and choose **Edit**; double-clicking a row also op
 
 Select a record to view it. Passwords, usernames, and custom-field values are masked by default. Choose **Show** to reveal a masked value, then **Hide** to mask it again. Choose **Copy** to copy a field. Website and notes are displayed as ordinary text and also have a Copy button.
 
-Copied secrets are cleared from the clipboard after the configured timer when the clipboard still contains the copied value. Clipboard managers or other applications may retain their own copies, so do not copy secrets on a shared computer.
+The Copy button and keyboard copy from displayed record values use the same clipboard protection. The app clears its clipboard item on timeout, vault lock, and normal exit. A later copy by another app is left in place, even if the text is identical. Clipboard history, sync, and third-party managers may retain their own copies.
 
 ## 6. Generate a password or passphrase
 
@@ -144,7 +148,7 @@ Choose **Backup / restore**.
 2. Select a destination different from the active vault file.
 3. Store the backup somewhere separate from the computer, such as protected removable storage.
 
-The backup remains encrypted and uses the vault's master password. A backup is sensitive; protect both the file and the password.
+The backup remains encrypted and uses the vault's master password at the time of backup. Changing the active vault's password does not change older backups. A backup is sensitive; protect both the file and the password. Choose a new filename. A backup copies the saved encrypted vault without changing the original and refuses to replace any existing file. The destination filesystem must support private permissions and atomic creation by hard link. If removable media does not support these, create the backup in a private local folder and copy the encrypted file to the media.
 
 ### Restore an encrypted backup
 
@@ -152,7 +156,7 @@ The backup remains encrypted and uses the vault's master password. A backup is s
 2. If needed, enter the backup's master password.
 3. Review the record count and confirm replacement.
 
-Restoring replaces the active vault contents. The restored records are saved using the current vault's master password. Create a backup of the current vault before restoring if you need to preserve it.
+The backup can be read from read-only storage. The app authenticates it without creating a lock beside it. Restoring replaces the active vault contents only after confirmation. The restored records are saved using the current vault's master password. Create a backup of the current vault before restoring if you need to preserve it. For recovery testing, work with copies in separate locations first; never overwrite the only original while investigating a failed unlock or damaged file. File corruption and a lost master password have no automatic recovery service.
 
 ## 11. Import and export CSV
 
@@ -161,7 +165,11 @@ Choose **Import / export**. The app imports Password Guruji CSV exports; it does
 - **Import Guruji CSV** asks you to confirm, choose a file, then confirm how many records to add. Imported records are added to the current vault.
 - **Export plaintext CSV** asks for a separate warning confirmation, then lets you choose a destination. The CSV contains readable passwords and notes and is not encrypted.
 
-Treat an exported CSV like an unprotected copy of your vault: save it only in a protected location, do not email or message it, and remove it when no longer needed. Deleting a file may not securely erase every copy from storage or backups. Make an encrypted vault backup before importing or exporting.
+New exports use the Password Guruji CSV v2 header `Name [PGCSV2]`. Every data cell starts with the literal marker `PGTEXT:` so formula-like values remain text when exported. The importer removes that marker and restores the original values; do not remove markers or change the header manually. Tag and custom-field encodings are for lossless app import, not encryption. Earlier Password Guruji CSV headers are also accepted, but old exports do not have these formula protections. The importer and exporter share a 32 MiB file limit and an 8 Mi UTF-16 code-unit cell limit. Larger exports fail before replacing a destination. The exporter requires a `.csv` destination and refuses to replace an encrypted vault or the active lock file.
+
+CSV is a transfer format, not a complete vault backup: imports receive new record identities and do not restore record history or application settings. Use an encrypted backup when those vault records and histories must be preserved. Application settings remain separate from vault files.
+
+Treat an exported CSV like an unprotected copy of your vault: save it only in a protected location, do not email or message it, and remove it when no longer needed. Avoid opening password exports in spreadsheet software; editing, conversions, or older exports can lose text protections. Deleting a file may not securely erase every copy from storage or backups. Make an encrypted vault backup before importing or exporting.
 
 ## 12. Settings and locking
 
@@ -169,10 +177,10 @@ Choose **Settings** to configure:
 
 - **Inactivity lock:** 1, 5, or 10 minutes, or Never. The default is 5 minutes. Never disables automatic inactivity locking; use it only when appropriate.
 - **Clipboard clearing:** 15, 30, or 60 seconds. The default is 30 seconds.
-- **Change master password:** enter and confirm the new password. The current test build requires at least six characters; use a much longer passphrase.
-- **Open vault folder:** opens the folder containing the active vault when supported by Windows.
+- **Change master password:** enter and confirm a password of at least 15 characters in normal mode, or six in explicit demonstration mode. Older backups retain their original password.
+- **Open vault folder:** opens the folder containing the active vault when supported by the desktop.
 
-Choose **Lock** to lock the vault immediately. Close the window to save and exit. Lock the vault before leaving the computer unattended.
+Accepted record changes are saved when you confirm them. If saving fails, the app reports the failure and restores the previous records. Choose **Lock** to lock immediately, or close the window to exit; neither action requires another save. Lock the vault before leaving the computer unattended.
 
 ## 13. Offline behavior and limitations
 
@@ -189,5 +197,12 @@ This build does not provide cloud sync, browser autofill, live breach monitoring
 - **A CSV file is rejected:** the importer accepts only Password Guruji CSV exports with the expected header and format.
 - **A restore asks for a password:** enter the master password that protects the selected backup. Confirm carefully because restore replaces the active vault.
 - **The app locks while you are using it:** adjust the inactivity interval in **Settings**.
+- **Another instance is writing the vault:** let that operation finish and close extra instances. Do not remove the `.lock` file. Its continued presence is not itself an error.
+- **The vault changed in another instance:** your stale changes were not saved. Close the app and reopen the latest vault before editing again. Do not overwrite it with an older copy.
+- **Private permissions, atomic replacement, read-only, or access errors:** leave the original file intact. Check available disk space and folder access. With all app windows closed, copy the vault to a private supported local folder and open that copy. Do not weaken permissions or bypass the safe-save checks.
+- **An interrupted save leaves a `.pending` file:** preserve the original vault and existing backups. Do not rename temporary files over the vault; they may be incomplete. Check a copy of the original or restore a known-good encrypted backup to a separate location first.
+- **The updated app cannot open a vault:** verify the selected path and build identifier, preserve the original, and test a known-good backup copy. Do not assume an older application can read the newest vault format.
+
+For reports, include the operating system, architecture, source commit from `build-metadata.json`, installer format, exact error, and steps using fictional data. Redact usernames and home-folder paths. Never upload a vault, backup, CSV export, master password, authenticator secret, heap dump, or full process dump.
 
 For installation help, see the Installation Guide. For the tester's scope, see the Manual Test Guide. For vault-file details, see the Vault Format document.

@@ -5,11 +5,26 @@
   <version>0.1.0</version>
   <name>Password Guruji</name>
   <description>Offline-first encrypted password manager</description>
-  <properties><maven.compiler.release>17</maven.compiler.release><project.build.sourceEncoding>UTF-8</project.build.sourceEncoding></properties>
+  <properties><maven.compiler.release>25</maven.compiler.release><project.build.sourceEncoding>UTF-8</project.build.sourceEncoding><excluded.test.groups>desktop</excluded.test.groups></properties>
+  <dependencies>
+    <dependency><groupId>org.junit.jupiter</groupId><artifactId>junit-jupiter</artifactId><version>5.12.2</version><scope>test</scope></dependency>
+  </dependencies>
   <build><plugins>
-    <plugin><groupId>org.apache.maven.plugins</groupId><artifactId>maven-compiler-plugin</artifactId><version>3.13.0</version></plugin>
-    <plugin><groupId>org.apache.maven.plugins</groupId><artifactId>maven-jar-plugin</artifactId><version>3.4.2</version>
+    <plugin><groupId>org.apache.maven.plugins</groupId><artifactId>maven-resources-plugin</artifactId><version>3.5.0</version>
+      <!-- GHSA-6fmv-xxpf-w3cw: override the plugin's affected transitive version. -->
+      <dependencies><dependency><groupId>org.codehaus.plexus</groupId><artifactId>plexus-utils</artifactId><version>3.6.1</version></dependency></dependencies>
+    </plugin>
+    <plugin><groupId>org.apache.maven.plugins</groupId><artifactId>maven-dependency-plugin</artifactId><version>3.11.0</version>
+      <!-- GHSA-wxr5-93ph-8wr9: build-tool dependency only, never bundled in the app. -->
+      <dependencies><dependency><groupId>commons-beanutils</groupId><artifactId>commons-beanutils</artifactId><version>1.11.0</version></dependency></dependencies>
+    </plugin>
+    <plugin><groupId>org.apache.maven.plugins</groupId><artifactId>maven-surefire-plugin</artifactId><version>3.6.1</version>
+      <configuration><excludedGroups>${excluded.test.groups}</excludedGroups><systemPropertyVariables><java.util.prefs.userRoot>${project.build.directory}/test-preferences</java.util.prefs.userRoot></systemPropertyVariables></configuration>
+    </plugin>
+    <plugin><groupId>org.apache.maven.plugins</groupId><artifactId>maven-compiler-plugin</artifactId><version>3.16.0</version></plugin>
+    <plugin><groupId>org.apache.maven.plugins</groupId><artifactId>maven-jar-plugin</artifactId><version>3.5.1</version>
       <configuration><archive><manifest><mainClass>com.mirakinetix.passwordguruji.PasswordGurujiApp</mainClass></manifest></archive></configuration>
     </plugin>
   </plugins></build>
+  <profiles><profile><id>desktop</id><properties><excluded.test.groups>none</excluded.test.groups></properties></profile></profiles>
 </project>

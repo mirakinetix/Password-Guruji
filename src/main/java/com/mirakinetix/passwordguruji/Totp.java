@@ -10,8 +10,13 @@ final class Totp {
     private Totp() {}
 
     static String currentCode(String secret) throws Exception {
+        return codeAt(secret, System.currentTimeMillis() / 1000L);
+    }
+
+    static String codeAt(String secret, long epochSeconds) throws Exception {
+        if (epochSeconds < 0) throw new IllegalArgumentException("Time cannot be negative.");
         byte[] key = decodeBase32(secret);
-        byte[] message = ByteBuffer.allocate(8).putLong(System.currentTimeMillis() / 30_000L).array();
+        byte[] message = ByteBuffer.allocate(8).putLong(epochSeconds / 30L).array();
         byte[] hash = null;
         try {
             Mac mac = Mac.getInstance("HmacSHA1");

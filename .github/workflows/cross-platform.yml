@@ -1,0 +1,93 @@
+name: Cross-platform beta candidate
+on:
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+permissions:
+  contents: read
+concurrency:
+  group: beta-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+jobs:
+  build-test-package:
+    if: github.event.repository.private == false
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: windows-2022
+            architecture: x64
+          - os: ubuntu-24.04
+            architecture: x64
+          - os: macos-15-intel
+            architecture: x64
+          - os: macos-15
+            architecture: aarch64
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 55
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+      - uses: actions/setup-java@cf277c60eb25467037889841efdb72551f06f6c3
+        with:
+          distribution: temurin
+          java-version: '25'
+          architecture: ${{ matrix.architecture }}
+          cache: maven
+      - name: Linux packaging and display tools
+        if: runner.os == 'Linux'
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y rpm fakeroot xvfb
+          # Minimal runner images lack this standard desktop-menu directory.
+          sudo mkdir -p /usr/share/desktop-directories
+      - name: Locate WiX on Windows
+        if: runner.os == 'Windows'
+        shell: pwsh
+        run: |
+          $wixBin = Join-Path $env:WIX 'bin'
+          if (-not (Test-Path (Join-Path $wixBin 'candle.exe'))) { throw 'WiX toolset unavailable' }
+          $wixBin | Out-File -FilePath $env:GITHUB_PATH -Append
+      - name: Test with virtual display on Linux
+        if: runner.os == 'Linux'
+        run: xvfb-run -a mvn -U -B -Pdesktop verify
+      - name: Test Windows and macOS desktop
+        if: runner.os != 'Linux'
+        run: mvn -U -B -Pdesktop verify
+      - name: Build native installers
+        run: python tools/package-native.py
+      - name: Verify Linux installation
+        if: runner.os == 'Linux'
+        run: xvfb-run -a python tools/verify-installation.py
+      - name: Verify Windows and macOS installation
+        if: runner.os != 'Linux'
+        run: python tools/verify-installation.py
+      - name: Verify actual Fedora RPM and Debian DEB transactions
+        if: runner.os == 'Linux'
+        run: python tools/verify-linux-containers.py
+      - name: Test reports and evidence
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: evidence-${{ matrix.os }}-${{ matrix.architecture }}
+          path: |
+            target/surefire-reports/
+            target/native/*.json
+            target/native/*.log
+          retention-days: 7
+      - name: Candidate installers (not a release)
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: installers-${{ matrix.os }}-${{ matrix.architecture }}
+          path: |
+            target/native/*.msi
+            target/native/*.exe
+            target/native/*.deb
+            target/native/*.rpm
+            target/native/*.pkg
+            target/native/*.dmg
+            target/native/*.sha256
+            target/native/build-metadata.json
+          retention-days: 7
+          if-no-files-found: error

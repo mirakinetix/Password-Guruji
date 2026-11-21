@@ -318,8 +318,12 @@ Technical guidance and product details were reviewed on 23 October 2026. Standar
 
 The user approved moving from baseline review into the initial offline desktop implementation.
 
-- The local evaluation keeps the master-password minimum at six characters for ease of testing. Raise it to 15 characters after local testing is complete; the six-character setting is temporary and is not for public release.
+- The hardened beta requires 15 Unicode characters for new normal vaults and password changes. Existing legacy passwords still unlock; explicit fictional sample mode alone permits six characters. Production use remains gated by the release-readiness review.
 - Google Authenticator verification for unlocking Password Guruji is deferred to a later implementation stage. Storing and generating TOTP codes for the user's other accounts is a separate local-vault feature.
 - The current Java build targets Java 17. Supported operating systems and distribution format remain open decisions.
 - A bundled EFF long word list is used for passphrase generation and is attributed in documentation/THIRD-PARTY-NOTICES.md.
 - Implementation completion and compilation do not establish security certification. App workflows still require user-led local testing, and release readiness still requires the reviews described in this baseline.
+
+## Cross-platform candidate update — 21 November 2026
+
+The cross-platform working branch now targets Java 25 and preserves the implemented Swing UI (the application is not JavaFX). GitHub-hosted testing and native packaging cover Windows x64, Ubuntu x64, macOS Intel and macOS ARM64. See [Release readiness](RELEASE-READINESS.md) for verified results and exclusions, and [Cross-platform beta](CROSS-PLATFORM-BETA.md) for installation/test instructions. These updates supersede the earlier Java 17/distribution decision above. Public release and tester invitations remain subject to explicit owner approval.

@@ -7,3 +7,7 @@ samples/working/
 *.tmp
 .idea/
 .vscode/
+__pycache__/
+*.pyc
+*.pgv.lock
+*.pending

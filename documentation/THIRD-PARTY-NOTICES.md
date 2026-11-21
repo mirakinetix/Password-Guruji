@@ -1,5 +1,9 @@
 # Third-party notices
 
+## Java runtime and build tools
+
+Native candidate installers bundle an Eclipse Temurin Java 25 runtime. Its license and legal notices are retained in the runtime's `legal` directory. The source checkout requires a separately installed JDK. JUnit and Maven plugin libraries are development/test tools and are not bundled in the application JAR. See the build inventory and security report for their resolved versions.
+
 ## EFF long word list
 
 Password Guruji bundles the Electronic Frontier Foundation (EFF) long word list for offline passphrase generation.
