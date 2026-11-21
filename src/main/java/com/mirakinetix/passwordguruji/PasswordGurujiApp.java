@@ -49,12 +49,17 @@ public final class PasswordGurujiApp {
     private int lockAfterMinutes;
     private int clipboardClearSeconds;
     private JPanel unlockPage;
+    private final SecretClipboard secretClipboard = new SecretClipboard(Toolkit.getDefaultToolkit().getSystemClipboard());
 
     public static void main(String[] args) { SwingUtilities.invokeLater(() -> new PasswordGurujiApp(args).launch()); }
 
     private PasswordGurujiApp(String[] args) {
+        this(args, null);
+    }
+
+    PasswordGurujiApp(String[] args, Preferences isolatedPreferences) {
         boolean sample = args.length == 2 && args[0].equals("--sample-vault");
-        preferences = sample ? Preferences.userNodeForPackage(PasswordGurujiApp.class).node("sample")
+        preferences = isolatedPreferences != null ? isolatedPreferences : sample ? Preferences.userNodeForPackage(PasswordGurujiApp.class).node("sample")
                 : Preferences.userNodeForPackage(PasswordGurujiApp.class);
         if (sample) {
             store = new VaultStore(Path.of(args[1]));
@@ -254,6 +259,9 @@ public final class PasswordGurujiApp {
     }
 
     private void showUnlock() {
+        if (unlockPage != null) pagePanel.remove(unlockPage);
+        unlockPage = buildUnlockPage();
+        pagePanel.add(unlockPage, "unlock");
         locked = true; ((CardLayout)pagePanel.getLayout()).show(pagePanel, "unlock");
         frame.setTitle(store.exists() ? "Password Guruji · Locked" : "Password Guruji · Create your vault");
     }
@@ -759,6 +767,7 @@ public final class PasswordGurujiApp {
     }
 
     private void clearSensitiveState() {
+        secretClipboard.clear();
         stopTotpTimer();wipe(masterPassword);masterPassword=null;entries.clear();listModel.clear();
         entryList.clearSelection();searchField.setText("");detailPanel.removeAll();
         detailPanel.revalidate();detailPanel.repaint();locked=true;
@@ -772,15 +781,8 @@ public final class PasswordGurujiApp {
 
     private void copyToClipboard(String value) {
         if(value==null||value.isEmpty())return;
-        Toolkit.getDefaultToolkit().getSystemClipboard().setContents(new StringSelection(value),null);
+        secretClipboard.copy(value, clipboardClearSeconds*1000);
         listSummary.setText("Copied · clipboard clears in "+clipboardClearSeconds+" seconds");
-        javax.swing.Timer clear=new javax.swing.Timer(clipboardClearSeconds*1000,e->{
-            try{
-                String current=Toolkit.getDefaultToolkit().getSystemClipboard().getData(java.awt.datatransfer.DataFlavor.stringFlavor).toString();
-                if(value.equals(current))Toolkit.getDefaultToolkit().getSystemClipboard().setContents(new StringSelection(""),null);
-            }catch(Exception ignored){}
-        });
-        clear.setRepeats(false);clear.start();
     }
 
     private void selectById(String id) {

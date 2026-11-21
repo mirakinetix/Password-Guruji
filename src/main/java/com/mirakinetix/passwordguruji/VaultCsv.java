@@ -64,7 +64,7 @@ final class VaultCsv {
             Base64.Decoder decoder = Base64.getUrlDecoder();
             for (String line : body.split("\\n", -1)) {
                 int split = line.indexOf(':');
-                if (split < 1 || split == line.length() - 1) throw new IOException("Invalid custom fields in CSV.");
+                if (split < 1) throw new IOException("Invalid custom fields in CSV.");
                 try {
                     String key = new String(decoder.decode(line.substring(0, split)), StandardCharsets.UTF_8);
                     String fieldValue = new String(decoder.decode(line.substring(split + 1)), StandardCharsets.UTF_8);
